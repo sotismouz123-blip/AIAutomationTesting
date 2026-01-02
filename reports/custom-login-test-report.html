@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Login Test Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; }
+    .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); padding: 32px; }
+    h1 { color: #333; margin-bottom: 24px; }
+    .test-summary { display: flex; gap: 32px; margin-bottom: 40px; }
+    .summary-box { background: #eceffe; border-radius: 8px; padding: 20px 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; flex: 1; }
+    .summary-value { font-size: 2em; font-weight: bold; color: #3246a8; }
+    .pass { color: #28a745; font-weight: bold; }
+    .fail { color: #dc3545; font-weight: bold; }
+    .test-case { margin-bottom: 56px; border-bottom: 1px solid #eee; padding-bottom: 42px; }
+    .case-title { font-size: 1.3em; margin-top: 0; }
+    .status-badge { border-radius: 12px; padding: 2px 12px; font-size: .9em; color: #fff; margin-left: 18px; background: #28a745; display: inline-block; }
+    .fail .status-badge { background: #dc3545; }
+    .steps { margin: 18px 0 34px 0; padding-left: 20px; }
+    .step { margin-bottom: 7px; color: #333; }
+    .screenshot-row { display: flex; gap: 36px; flex-wrap: wrap; }
+    .screenshot-box { background: #fafbfc; padding: 16px; border-radius: 8px; margin-bottom: 26px; box-shadow: 0 1px 3px rgba(60,60,60,0.05); }
+    .screenshot-box img { max-width: 350px; border-radius: 5px; box-shadow: 0 3px 12px rgba(0,0,0,0.10); margin-bottom: 8px; }
+    .img-caption { color: #233a5d; font-size: 0.93em; margin: 0 0 8px 0; text-align: left; }
+    .log-block { background: #f8f9fa; border: 1px solid #e6eaf0; border-radius: 5px; margin: 18px 0; padding: 16px 20px; font-family: monospace; color: #355; font-size: 1.05em; }
+    .email-label { font-family: monospace; color:#435e84; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Custom Login Test Report</h1>
+    <div class="test-summary">
+      <div class="summary-box">
+        <div>Total Test Users</div>
+        <div class="summary-value">3</div>
+      </div>
+      <div class="summary-box">
+        <div>Status</div>
+        <div class="summary-value pass">PASSED</div>
+      </div>
+      <div class="summary-box">
+        <div>Date</div>
+        <div class="summary-value">2026-01-02</div>
+      </div>
+    </div>
+    <div class="test-case">
+      <div class="case-title">Login Page (Before Login)</div>
+      <div class="screenshot-row">
+        <div class="screenshot-box">
+           <img src="../screenshots/login-page-screenshot.png" alt="Login Page Screenshot"/>
+           <div class="img-caption">Initial state of the Client Portal Login page</div>
+        </div>
+      </div>
+    </div>
+    <div class="test-case">
+      <div class="case-title">Successful Login – Test User: <span class="email-label">nickchigg+AfghanistanTestDNlbXjDX@gmail.com</span> <span class="status-badge">PASSED</span></div>
+      <div class="steps">
+        <div class="step">1. Navigated to <b>/en/client-portal</b></div>
+        <div class="step">2. Entered email and password</div>
+        <div class="step">3. Clicked Login and waited for successful navigation</div>
+        <div class="step">4. Verified dashboard & user redirected (URL includes <b>/home</b>)</div>
+      </div>
+      <div class="screenshot-row">
+        <div class="screenshot-box">
+          <img src="../screenshots/after-login-click-nickchigg_AfghanistanTestDNlbXjDX_gmail_com.png" alt="Dashboard After Login (Afghanistan)"/>
+          <div class="img-caption">Dashboard after login as nickchigg+AfghanistanTestDNlbXjDX@gmail.com</div>
+        </div>
+      </div>
+      <div class="log-block">
+        Login successful. User redirected to dashboard: <br/>
+        https://ironfx-com.cp-uat.ironfx.local/en/client-portal/home
+      </div>
+    </div>
+    <div class="test-case">
+      <div class="case-title">Successful Login – Test User: <span class="email-label">nickchigg+AlbaniaTestlDwQKRzf@gmail.com</span> <span class="status-badge">PASSED</span></div>
+      <div class="steps">
+        <div class="step">1. Navigated to <b>/en/client-portal</b></div>
+        <div class="step">2. Entered email and password</div>
+        <div class="step">3. Clicked Login and waited for successful navigation</div>
+        <div class="step">4. Verified dashboard & user redirected (URL includes <b>/home</b>)</div>
+      </div>
+      <div class="screenshot-row">
+        <div class="screenshot-box">
+          <img src="../screenshots/after-login-click-nickchigg_AlbaniaTestlDwQKRzf_gmail_com.png" alt="Dashboard After Login (Albania)"/>
+          <div class="img-caption">Dashboard after login as nickchigg+AlbaniaTestlDwQKRzf@gmail.com</div>
+        </div>
+      </div>
+      <div class="log-block">
+        Login successful. User redirected to dashboard: <br/>
+        https://ironfx-com.cp-uat.ironfx.local/en/client-portal/home
+      </div>
+    </div>
+    <div class="test-case">
+      <div class="case-title">Successful Login – Test User: <span class="email-label">nickchigg+AlgeriaTestDbxHjITo@gmail.com</span> <span class="status-badge">PASSED</span></div>
+      <div class="steps">
+        <div class="step">1. Navigated to <b>/en/client-portal</b></div>
+        <div class="step">2. Entered email and password</div>
+        <div class="step">3. Clicked Login and waited for successful navigation</div>
+        <div class="step">4. Verified dashboard & user redirected (URL includes <b>/home</b>)</div>
+      </div>
+      <div class="screenshot-row">
+        <div class="screenshot-box">
+          <img src="../screenshots/after-login-click-nickchigg_AlgeriaTestDbxHjITo_gmail_com.png" alt="Dashboard After Login (Algeria)"/>
+          <div class="img-caption">Dashboard after login as nickchigg+AlgeriaTestDbxHjITo@gmail.com</div>
+        </div>
+      </div>
+      <div class="log-block">
+        Login successful. User redirected to dashboard: <br/>
+        https://ironfx-com.cp-uat.ironfx.local/en/client-portal/home
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

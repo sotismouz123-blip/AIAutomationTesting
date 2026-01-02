@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp remove:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(node inspect-page.js:*)",
+      "Bash(npm test:*)",
+      "Bash(dir:*)",
+      "Bash(start test-report.html)",
+      "Bash(move login.spec.ts tests )",
+      "Bash(move inspect-page.js utils)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: IronFX Login Test Automation\n\n- Playwright test suite with 3 test cases \\(login, form elements, validation\\)\n- Multi-user login testing with data-driven approach\n- Organized project structure \\(tests/, screenshots/, reports/, utils/\\)\n- Comprehensive README with setup instructions\n- Page inspection utility for selector discovery\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
