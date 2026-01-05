@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IronFX Test Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .select-trigger {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .select-trigger:hover {
+      border-color: #667eea;
+    }
+
+    .select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      margin-top: 5px;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .select-dropdown.active {
+      display: block;
+    }
+
+    .select-search {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .select-search input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .select-options {
+      padding: 5px;
+    }
+
+    .select-option {
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .select-option:hover {
+      background: #f5f5f5;
+    }
+
+    .select-option input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .select-all {
+      padding: 10px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .logs-container {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      height: 600px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #d4d4d4;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-entry.info {
+      color: #4fc3f7;
+    }
+
+    .log-entry.success {
+      color: #81c784;
+      font-weight: bold;
+    }
+
+    .log-entry.error {
+      color: #e57373;
+      background: rgba(229, 115, 115, 0.1);
+    }
+
+    .log-entry.warning {
+      color: #ffb74d;
+    }
+
+    .empty-logs {
+      text-align: center;
+      color: #888;
+      padding: 50px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.idle {
+      background: #888;
+    }
+
+    .status-indicator.running {
+      background: #4fc3f7;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.success {
+      background: #81c784;
+    }
+
+    .status-indicator.error {
+      background: #e57373;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .reports-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #eee;
+    }
+
+    .reports-section h3 {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: #555;
+    }
+
+    .report-item {
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .report-item:hover {
+      background: #f0f0f0;
+    }
+
+    .report-item a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .report-item a:hover {
+      text-decoration: underline;
+    }
+
+    .report-date {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .selected-count {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>IronFX Test Dashboard</h1>
+      <p>Run automated login tests with real-time monitoring</p>
+    </div>
+
+    <div class="dashboard">
+      <!-- Control Panel -->
+      <div class="card">
+        <h2>Test Configuration</h2>
+
+        <div class="form-group">
+          <label>Email Selection</label>
+          <div class="custom-select">
+            <div class="select-trigger" id="emailSelectTrigger">
+              <span id="selectedEmailsText">Select emails...</span>
+              <span>▼</span>
+            </div>
+            <div class="select-dropdown" id="emailDropdown">
+              <div class="select-search">
+                <input type="text" id="emailSearch" placeholder="Search emails...">
+              </div>
+              <div class="select-all">
+                <input type="checkbox" id="selectAllCheckbox">
+                <label for="selectAllCheckbox">Select All</label>
+              </div>
+              <div class="select-options" id="emailOptions"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="browserSelect">Browser</label>
+          <select id="browserSelect">
+            <option value="chromium">Chromium</option>
+            <option value="firefox">Firefox</option>
+            <option value="edge">Microsoft Edge</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Mode</label>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="headlessCheckbox" checked>
+              <span>Headless (faster)</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="runTestsBtn">
+          <span class="status-indicator idle" id="statusIndicator"></span>
+          Run Tests
+        </button>
+
+        <div class="reports-section">
+          <h3>Recent Reports</h3>
+          <div id="reportsList"></div>
+        </div>
+      </div>
+
+      <!-- Logs Panel -->
+      <div class="card">
+        <h2>Test Execution Logs</h2>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="label">Selected Emails</div>
+            <div class="value" id="selectedCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Browser</div>
+            <div class="value" id="selectedBrowser">Chromium</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Mode</div>
+            <div class="value" id="selectedMode">Headless</div>
+          </div>
+        </div>
+        <div class="logs-container" id="logsContainer">
+          <div class="empty-logs">No tests running. Configure and click "Run Tests" to start.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

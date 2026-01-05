@@ -4,8 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "ui": "node server.js",
     "test": "playwright test",
-    "test:headed": "playwright test --headed",
+    "test:headless": "set HEADLESS=true&& playwright test",
+    "test:headed": "set HEADLESS=false&& playwright test",
+    "test:single": "set HEADLESS=false&& set TEST_EMAIL=nickchigg+AfghanistanTestDNlbXjDX@gmail.com&& playwright test",
+    "test:few": "set HEADLESS=false&& set TEST_EMAIL=nickchigg+AfghanistanTestDNlbXjDX@gmail.com,nickchigg+AlbaniaTestlDwQKRzf@gmail.com&& playwright test",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report"
@@ -17,5 +22,9 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.3"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.18.3"
   }
 }

@@ -5,8 +5,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  workers: 3,
+  reporter: [
+    ['html'],
+    ['./utils/custom-reporter.js']
+  ],
 
   // Output directories
   outputDir: './test-results',
@@ -35,11 +38,45 @@ export default defineConfig({
     {
       name: 'chromium',
       use: {
-        ...devices['Desktop Chrome'],
-        // Run tests in headed mode (visible browser)
-        headless: false,
-        // Slow down operations for better visibility
-        slowMo: 500,
+        headless: process.env.HEADLESS !== 'false',
+        slowMo: process.env.HEADLESS === 'false' ? 500 : 0,
+        viewport: { width: 1920, height: 1080 },
+        launchOptions: {
+          channel: 'chrome',
+          args: [
+            '--incognito',
+            '--start-maximized'
+          ]
+        }
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        headless: process.env.HEADLESS !== 'false',
+        slowMo: process.env.HEADLESS === 'false' ? 500 : 0,
+        viewport: { width: 1920, height: 1080 },
+        launchOptions: {
+          args: ['-private-window'],
+          firefoxUserPrefs: {
+            'browser.privatebrowsing.autostart': true
+          }
+        },
+      },
+    },
+    {
+      name: 'edge',
+      use: {
+        headless: process.env.HEADLESS !== 'false',
+        slowMo: process.env.HEADLESS === 'false' ? 500 : 0,
+        viewport: { width: 1920, height: 1080 },
+        channel: 'msedge',
+        launchOptions: {
+          args: [
+            '--inprivate',
+            '--start-maximized'
+          ]
+        }
       },
     },
   ],

@@ -15,7 +15,20 @@
       "Bash(move inspect-page.js utils)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: IronFX Login Test Automation\n\n- Playwright test suite with 3 test cases \\(login, form elements, validation\\)\n- Multi-user login testing with data-driven approach\n- Organized project structure \\(tests/, screenshots/, reports/, utils/\\)\n- Comprehensive README with setup instructions\n- Page inspection utility for selector discovery\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: IronFX Login Test Automation\n\n- Playwright test suite with 3 test cases \\(login, form elements, validation\\)\n- Multi-user login testing with data-driven approach\n- Organized project structure \\(tests/, screenshots/, reports/, utils/\\)\n- Comprehensive README with setup instructions\n- Page inspection utility for selector discovery\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run test:headless:*)",
+      "Bash(del reportsreport_*.html)",
+      "Bash(timeout 10 tail:*)",
+      "Bash(cat:*)",
+      "Bash(SET HEADLESS=false)",
+      "Bash(npx playwright test:*)",
+      "Bash(HEADLESS=false npx playwright test:*)",
+      "Bash(npx playwright:*)",
+      "WebFetch(domain:medium.com)",
+      "WebSearch",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

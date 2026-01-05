@@ -1,229 +1,358 @@
 # IronFX Login Test Automation
 
-Automated test suite for IronFX Client Portal login functionality using Playwright and TypeScript.
-
-## Project Status
-
-✅ **All 3 tests passing** | 🕒 Execution time: ~28s | 📊 Test Coverage: Login Flow, UI Elements, Form Validation
+Automated test framework for IronFX Client Portal login functionality using Playwright with Page Object Model (POM) design pattern.
 
 ## Project Structure
 
 ```
 AIAutomationTesting/
-├── tests/                          # Test files
-│   └── login.spec.ts              # Login test suite (3 test cases)
-├── screenshots/                    # Test screenshots
-│   ├── after-login-click.png      # Post-login verification screenshot
-│   └── login-page-screenshot.png  # Initial login page screenshot
-├── reports/                        # Custom HTML reports
-│   └── test-report.html           # Detailed test execution report
-├── utils/                          # Utility scripts
-│   └── inspect-page.js            # Page inspection tool for selector discovery
+├── tests/                          # Test specifications
+│   └── login/
+│       └── login.spec.ts           # Login test cases (data-driven)
+├── pages/                          # Page Object Models
+│   └── LoginPage.ts                # Login page actions & locators
+├── fixtures/                       # Custom test fixtures
+│   └── testSetup.ts                # Shared test setup & helpers
+├── data/                           # Test data
+│   └── testData.json               # Emails, passwords, test configs
+├── utils/                          # Utility modules
+│   ├── custom-reporter.js          # HTML report generator with filtering
+│   ├── HTMLReportGenerator.js      # Report generation helper
+│   ├── websocket-reporter.js       # Real-time log streaming
+│   └── inspect-page.js             # Page inspection tool
+├── reports/                        # Generated HTML reports
+├── public/                         # Web UI dashboard
+│   ├── index.html                  # Dashboard interface
+│   └── app.js                      # Dashboard JavaScript
 ├── playwright.config.ts            # Playwright configuration
-├── package.json                    # Dependencies and scripts
-└── README.md                       # This file
+├── tsconfig.json                   # TypeScript configuration
+├── server.js                       # Express server for UI dashboard
+└── package.json                    # Project dependencies
 ```
 
-## Test Cases
+## Features
 
-### 1. Login with Valid Credentials
-**Purpose**: Verify successful login flow with valid user credentials
+- **Page Object Model (POM)**: Maintainable and reusable test architecture
+- **Data-Driven Testing**: Test 225+ email accounts from centralized JSON file
+- **Multi-Browser Support**: Chromium, Firefox, Microsoft Edge
+- **Custom HTML Reports**: Interactive reports with clickable filtering (Total/Passed/Failed)
+- **Screenshot Capture**: JPEG screenshots with configurable compression
+- **Web UI Dashboard**: Real-time test execution monitoring
+- **Parallel Execution**: Run tests concurrently with 3 workers
+- **Custom Fixtures**: Reusable test setup with loginPage, testData, screenshotHelper
 
-**Steps**:
-- Navigate to `/en/client-portal`
-- Fill email: `nickchigg+AfghanistanTestDNlbXjDX@gmail.com`
-- Fill password: `Password1!`
-- Click Login button
-- Verify navigation to `/en/client-portal/home`
-- Capture screenshot for verification
+## Prerequisites
 
-**Expected Result**: User successfully redirected to dashboard
+- Node.js (v16 or higher)
+- npm or yarn
 
----
+## Installation
 
-### 2. Display Login Form Elements
-**Purpose**: Validate all required login form elements are visible
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd AIAutomationTesting
+```
 
-**Verifications**:
-- Email field (`#inlineFieldLogin`) is visible
-- Password field (`#inlineFieldPassword`) is visible
-- Login button is visible
-- Page title contains "Log in to IronFX Client Portal"
-
-**Expected Result**: All form elements render correctly
-
----
-
-### 3. Form Validation for Empty Fields
-**Purpose**: Ensure HTML5 validation prevents empty form submission
-
-**Steps**:
-- Navigate to login page
-- Click Login button without filling fields
-- Verify HTML5 validation triggers
-
-**Expected Result**: Form cannot be submitted; email field marked as invalid
-
-## Configuration
-
-### Playwright Settings
-- **Test Directory**: `./tests`
-- **Browser**: Chromium (Desktop Chrome)
-- **Execution Mode**: Headed (visible browser)
-- **SlowMo**: 500ms (for visual debugging)
-- **SSL Errors**: Ignored (UAT environment)
-- **Screenshots**: Captured on failure
-- **Videos**: Recorded on failure
-- **Traces**: Enabled on retry
-
-### Environment
-- **Base URL**: `https://ironfx-com.cp-uat.ironfx.local`
-- **Success URL**: `https://ironfx-com.cp-uat.ironfx.local/en/client-portal/home`
-- **Page Title**: "Log in to IronFX Client Portal in Seconds. Start Trading Now"
-
-## Running Tests
-
-### Prerequisites
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-### Test Execution Commands
-
+3. Install Playwright browsers:
 ```bash
-# Run all tests (visible browser)
-npm test
-
-# Run tests in headed mode (visible browser)
-npm run test:headed
-
-# Run tests in debug mode (step-through debugging)
-npm run test:debug
-
-# Run tests in UI mode (interactive test runner)
-npm run test:ui
-
-# View HTML test report
-npm run test:report
+npx playwright install
 ```
 
-## Key Selectors
+## Running Tests
 
-| Element | Selector | Type | Attributes |
-|---------|----------|------|------------|
-| Email field | `#inlineFieldLogin` | Input | type="email", name="login" |
-| Password field | `#inlineFieldPassword` | Input | type="password", name="password" |
-| Login button | `button.btn-red.btn-login:has-text("Login")` | Button | Main submit button |
+### Command Line
+
+Run all tests (headless mode):
+```bash
+npx playwright test
+```
+
+Run tests with visible browser:
+```bash
+HEADLESS=false npx playwright test
+```
+
+Run specific browser:
+```bash
+npx playwright test --project chromium
+npx playwright test --project firefox
+npx playwright test --project edge
+```
+
+Run specific email(s):
+```bash
+TEST_EMAIL="user1@example.com,user2@example.com" npx playwright test
+```
+
+Run specific test file:
+```bash
+npx playwright test tests/login/login.spec.ts
+```
+
+### Web UI Dashboard
+
+1. Start the server:
+```bash
+node server.js
+```
+
+2. Open browser and navigate to:
+```
+http://localhost:3000
+```
+
+3. Select emails, browser, and mode, then click "Run Tests"
+
+## Configuration
+
+### Playwright Config (playwright.config.ts)
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `workers` | Parallel test workers | 3 |
+| `actionTimeout` | Timeout per action | 10000ms |
+| `retries` | Retry failed tests (CI only) | 2 |
+| `baseURL` | Target application URL | UAT environment |
+
+### Browser Configuration
+
+| Browser | Mode | Additional Flags |
+|---------|------|------------------|
+| Chromium | Isolated context | `--incognito`, `--start-maximized` |
+| Firefox | Private browsing | `browser.privatebrowsing.autostart` |
+| Edge | InPrivate mode | `--inprivate`, `--start-maximized` |
+
+### Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `HEADLESS` | Run browser in headless mode | `true` / `false` |
+| `TEST_EMAIL` | Specific email(s) to test | `user@example.com` |
+
+## Test Data
+
+Test data is centralized in `data/testData.json`:
+
+```json
+{
+  "password": "Password1!",
+  "emails": [
+    "user1@example.com",
+    "user2@example.com"
+  ]
+}
+```
+
+## Page Object Model
+
+### LoginPage (pages/LoginPage.ts)
+
+The LoginPage class encapsulates all login-related actions and locators:
+
+```typescript
+// Available methods
+loginPage.navigate()                          // Navigate to login page
+loginPage.fillEmail(email)                    // Fill email field
+loginPage.fillPassword(password)              // Fill password field
+loginPage.fillCredentials(email, password)    // Fill both fields
+loginPage.clickLogin()                        // Click login button
+loginPage.login(email, password)              // Complete login flow
+loginPage.waitForLoginSuccess()               // Verify successful login
+loginPage.verifyFormElementsVisible()         // Check form elements
+loginPage.verifyPageTitle()                   // Verify page title
+loginPage.isEmailFieldInvalid()               // Check validation state
+loginPage.takeScreenshot(quality)             // Capture screenshot
+```
+
+### Locators
+
+| Element | Selector | Description |
+|---------|----------|-------------|
+| Email field | `#inlineFieldLogin` | Email input field |
+| Password field | `#inlineFieldPassword` | Password input field |
+| Login button | `button.btn-red.btn-login:has-text("Login")` | Submit button |
+
+## Custom Fixtures
+
+Located in `fixtures/testSetup.ts`:
+
+| Fixture | Description |
+|---------|-------------|
+| `loginPage` | LoginPage instance for POM methods |
+| `testData` | Access to emails, password from JSON |
+| `screenshotHelper` | Simplified screenshot attachment |
+
+### Usage in Tests
+
+```typescript
+import { test, expect } from '../../fixtures/testSetup';
+
+test('example', async ({ loginPage, screenshotHelper, testData }) => {
+  await loginPage.navigate();
+  await loginPage.login(testData.emails[0], testData.password);
+  await screenshotHelper.attach('dashboard-screenshot');
+});
+```
+
+## Test Cases
+
+### Login Tests (tests/login/login.spec.ts)
+
+| Test | Description |
+|------|-------------|
+| `should login successfully with valid credentials [email]` | Data-driven test for 225+ emails |
+| `should display login form elements` | Verify form elements visibility |
+| `should show validation for empty fields` | Verify HTML5 validation |
+
+## Reports
+
+### Custom HTML Reports
+
+Reports are generated in the `reports/` folder with:
+- **Summary Section**: Total/Passed/Failed/Duration stats
+- **Clickable Filters**: Click on Total, Passed, or Failed to filter tests
+- **Step-by-Step Details**: Each test step with status indicator
+- **Embedded Screenshots**: JPEG compressed screenshots (quality: 30)
+- **Color-Coded Status**: Green for passed, red for failed
+
+### Report File Size
+
+Screenshots are compressed to JPEG with quality 30 to minimize report size:
+- ~60-80MB for 225 email tests (vs ~350MB with PNG)
+
+### Viewing Reports
+
+Reports are automatically generated after each test run:
+```
+reports/report_YYYY-MM-DD_HH-MM-SS.html
+```
+
+Or access via the Web UI dashboard under "Recent Reports".
+
+## Adding New Tests
+
+### 1. Create a new Page Object (if needed)
+
+```typescript
+// pages/DashboardPage.ts
+import { Page, Locator, expect } from '@playwright/test';
+
+export class DashboardPage {
+  readonly page: Page;
+  readonly welcomeMessage: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.welcomeMessage = page.locator('.welcome-msg');
+  }
+
+  async verifyWelcomeMessage(): Promise<void> {
+    await expect(this.welcomeMessage).toBeVisible();
+  }
+}
+```
+
+### 2. Add fixture (optional)
+
+```typescript
+// fixtures/testSetup.ts
+import { DashboardPage } from '../pages/DashboardPage';
+
+// Add to CustomFixtures type
+dashboardPage: DashboardPage;
+
+// Add fixture
+dashboardPage: async ({ page }, use) => {
+  await use(new DashboardPage(page));
+}
+```
+
+### 3. Create test file
+
+```typescript
+// tests/dashboard/dashboard.spec.ts
+import { test, expect } from '../../fixtures/testSetup';
+
+test.describe('Dashboard', () => {
+  test('should display welcome message', async ({ loginPage, testData }) => {
+    await loginPage.navigate();
+    await loginPage.login(testData.emails[0], testData.password);
+    // Add dashboard verification
+  });
+});
+```
 
 ## Utilities
 
-### Page Inspector (`utils/inspect-page.js`)
-Standalone script to inspect page structure and discover selectors.
+### Page Inspector (utils/inspect-page.js)
 
-**Usage**:
+Standalone script to inspect page structure and discover selectors:
+
 ```bash
 node utils/inspect-page.js
 ```
 
 **Output**:
 - Console logs of all input fields and buttons
-- Full-page screenshot: `login-page-screenshot.png`
-- Page source HTML: `page-source.html`
-- Browser stays open for 60 seconds for manual inspection
+- Full-page screenshot
+- Page source HTML
+- Browser stays open for manual inspection
 
-## Reports
+## Troubleshooting
 
-### Custom HTML Report
-Located at `reports/test-report.html`
+### Tests fail with timeout
+- Increase timeout in `playwright.config.ts`
+- Check network connectivity to UAT environment
+- Verify credentials in `data/testData.json`
 
-**Features**:
-- Professional dashboard with execution summary
-- Detailed test steps with timestamps
-- Screenshots for login page and dashboard
-- Console logs
-- Execution timeline
-- Test statistics
+### Browser doesn't open in headed mode
+- Ensure `HEADLESS=false` is set correctly
+- Check browser installation: `npx playwright install`
 
-### Playwright HTML Report
-Generated automatically in `playwright-report/`
+### Reports are too large
+- Screenshot quality is set to 30 (JPEG compression)
+- Adjust quality in `pages/LoginPage.ts` or `fixtures/testSetup.ts`
 
-**View Report**:
-```bash
-npm run test:report
-```
+### Web UI logs not showing
+- Restart server: `node server.js`
+- Check WebSocket connection in browser console
 
-## Technical Notes
+### SSL Certificate errors
+- Configuration includes `ignoreHTTPSErrors: true` for UAT environment
 
-### SSL Certificate Handling
-The UAT environment uses self-signed certificates. The configuration includes `ignoreHTTPSErrors: true` to allow testing.
+## Best Practices
 
-### Multiple Login Buttons
-The page contains multiple "Continue" buttons (some hidden for 2FA flows). The correct selector targets the visible red Login button specifically.
+1. **Keep locators in Page Objects** - Never hardcode selectors in tests
+2. **Use meaningful test names** - Describe what the test verifies
+3. **One assertion per test step** - Makes debugging easier
+4. **Centralize test data** - Use `data/testData.json` for all test inputs
+5. **Use fixtures for setup** - Avoid repetitive setup code in tests
+6. **Run tests in parallel** - Leverage Playwright's parallel execution
+7. **Use data-driven testing** - Loop through test data for similar scenarios
 
-### Headed Mode
-Tests run with visible browser (`headless: false`) and 500ms slowMo for easy debugging and demonstration purposes.
+## Environment
 
-### Screenshot Strategy
-- Manual screenshots saved to `screenshots/` folder
-- Automatic failure screenshots saved to `test-results/`
-- Full-page screenshots for comprehensive verification
-
-## Test Credentials
-
-**Email**: `nickchigg+AfghanistanTestDNlbXjDX@gmail.com`
-**Password**: `Password1!`
-
-⚠️ **Note**: These are UAT environment test credentials only.
+- **Base URL**: `https://ironfx-com.cp-uat.ironfx.local`
+- **Success URL**: `/en/client-portal/home`
+- **Page Title**: `Log in to IronFX Client Portal`
 
 ## Dependencies
 
 ```json
 {
   "@playwright/test": "^1.57.0",
-  "@types/node": "^25.0.3"
+  "@types/node": "^25.0.3",
+  "express": "^4.x",
+  "ws": "^8.x"
 }
 ```
-
-## Browser Support
-
-Currently configured for **Chromium** only. To add additional browsers, update `playwright.config.ts`:
-
-```typescript
-projects: [
-  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-]
-```
-
-## Troubleshooting
-
-### Tests failing with SSL errors
-Ensure `ignoreHTTPSErrors: true` is set in `playwright.config.ts`
-
-### Cannot find selectors
-Run the page inspector utility to discover current selectors:
-```bash
-node utils/inspect-page.js
-```
-
-### Tests timing out
-Increase timeout in `playwright.config.ts`:
-```typescript
-use: {
-  actionTimeout: 20000, // Increase from 10000
-}
-```
-
-## Contributing
-
-When adding new tests:
-1. Place test files in `tests/` folder
-2. Use descriptive test names
-3. Add screenshots to `screenshots/` folder
-4. Update this README with new test cases
-5. Follow existing selector patterns
 
 ## License
 
-ISC
+Internal use only - IronFX QA Team

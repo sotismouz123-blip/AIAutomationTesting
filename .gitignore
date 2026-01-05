@@ -40,3 +40,4 @@ pnpm-lock.yaml
 *.jpeg
 *.mp4
 *.webm
+reports/
