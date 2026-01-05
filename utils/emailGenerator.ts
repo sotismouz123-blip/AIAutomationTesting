@@ -51,9 +51,9 @@ export function generateRegistrationData(country: string, config: {
   currency?: string;
   leverage?: string;
 } = {}) {
-  const randomString = generateRandomString(5);
-  const firstName = `Test${randomString.slice(0, 3)}`;
-  const lastName = `User${randomString.slice(3, 5)}`;
+  
+  const firstName = `Test${country.slice(0, 5)}`;
+  const lastName = `User${country.slice(0, 5)}`;
 
   return {
     country,

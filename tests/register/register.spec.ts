@@ -57,7 +57,7 @@ test.describe('IronFX Registration', () => {
         await registerPage.clickSubmit();
         await registerPage.page.waitForTimeout(2000);
         await screenshotHelper.attach(`After submit - ${country}`);
-        console.log(`✅ Registration test passed for: ${country}\n`);
+        console.log(`✅ Registration test passed for: ${country}\n  email: ${registrationData.email}`);
       });
     });
   }
@@ -85,6 +85,28 @@ test.describe('IronFX Registration', () => {
 
     await test.step('Verify dependent dropdowns are enabled', async () => {
       await expect(registerPage.accountTypeSelect).toBeEnabled();
+      await expect(registerPage.bonusSchemeSelect).toBeDisabled();
+      await expect(registerPage.currencySelect).toBeDisabled();
+      await expect(registerPage.leverageSelect).toBeDisabled();
+      await screenshotHelper.attach('Dropdowns enabled after country selection');
+    });
+  });
+
+  test('should enable dependent dropdowns after Account type selection', async ({ registerPage, screenshotHelper }) => {
+    await test.step('Navigate to registration page', async () => {
+      await registerPage.navigate();
+    });
+    await test.step('Select a country', async () => {
+      await registerPage.selectCountry('Germany');
+      await registerPage.page.waitForTimeout(1000);
+    });
+    await test.step('Select a account type', async () => {
+      await registerPage.selectAccountType('Standard Floating');
+      await registerPage.page.waitForTimeout(1000);
+    });
+
+    await test.step('Verify dependent dropdowns are enabled', async () => {
+    
       await expect(registerPage.bonusSchemeSelect).toBeEnabled();
       await expect(registerPage.currencySelect).toBeEnabled();
       await expect(registerPage.leverageSelect).toBeEnabled();
