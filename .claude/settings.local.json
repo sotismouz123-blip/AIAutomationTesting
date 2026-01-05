@@ -28,7 +28,10 @@
       "WebSearch",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(node -e:*)",
+      "Bash(node utils/inspect-register-page.js:*)",
+      "Bash(TEST_COUNTRY=\"Germany\" npx playwright test:*)"
     ]
   }
 }

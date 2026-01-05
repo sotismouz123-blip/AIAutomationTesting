@@ -1,9 +1,11 @@
 import { test as base, TestInfo } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
+import { RegisterPage } from '../pages/RegisterPage';
 
 // Define custom fixtures type
 type CustomFixtures = {
   loginPage: LoginPage;
+  registerPage: RegisterPage;
   testData: {
     emails: string[];
     password: string;
@@ -20,6 +22,12 @@ export const test = base.extend<CustomFixtures>({
   loginPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
     await use(loginPage);
+  },
+
+  // Register Page fixture
+  registerPage: async ({ page }, use) => {
+    const registerPage = new RegisterPage(page);
+    await use(registerPage);
   },
 
   // Test data fixture

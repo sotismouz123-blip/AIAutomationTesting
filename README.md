@@ -7,10 +7,14 @@ Automated test framework for IronFX Client Portal login functionality using Play
 ```
 AIAutomationTesting/
 ├── tests/                          # Test specifications
-│   └── login/
-│       └── login.spec.ts           # Login test cases (data-driven)
+│   ├── login/
+│   │   └── login.spec.ts           # Login test cases (data-driven)
+│   └── register/
+│       ├── register.spec.ts        # Registration test cases (data-driven)
+│       └── README.md               # Registration tests documentation
 ├── pages/                          # Page Object Models
-│   └── LoginPage.ts                # Login page actions & locators
+│   ├── LoginPage.ts                # Login page actions & locators
+│   └── RegisterPage.ts             # Registration page actions & locators
 ├── fixtures/                       # Custom test fixtures
 │   └── testSetup.ts                # Shared test setup & helpers
 ├── data/                           # Test data
@@ -19,7 +23,9 @@ AIAutomationTesting/
 │   ├── custom-reporter.js          # HTML report generator with filtering
 │   ├── HTMLReportGenerator.js      # Report generation helper
 │   ├── websocket-reporter.js       # Real-time log streaming
-│   └── inspect-page.js             # Page inspection tool
+│   ├── emailGenerator.ts           # Email generation for registration
+│   ├── inspect-page.js             # Page inspection tool
+│   └── inspect-register-page.js    # Register page inspection tool
 ├── reports/                        # Generated HTML reports
 ├── public/                         # Web UI dashboard
 │   ├── index.html                  # Dashboard interface
@@ -93,6 +99,17 @@ TEST_EMAIL="user1@example.com,user2@example.com" npx playwright test
 Run specific test file:
 ```bash
 npx playwright test tests/login/login.spec.ts
+npx playwright test tests/register/register.spec.ts
+```
+
+Run registration tests for specific country:
+```bash
+TEST_COUNTRY="Germany" npx playwright test tests/register
+```
+
+Run registration tests for multiple countries:
+```bash
+TEST_COUNTRY="Germany,France,Spain" npx playwright test tests/register
 ```
 
 ### Web UI Dashboard
@@ -209,6 +226,27 @@ test('example', async ({ loginPage, screenshotHelper, testData }) => {
 | `should login successfully with valid credentials [email]` | Data-driven test for 225+ emails |
 | `should display login form elements` | Verify form elements visibility |
 | `should show validation for empty fields` | Verify HTML5 validation |
+
+### Registration Tests (tests/register/register.spec.ts)
+
+| Test | Description |
+|------|-------------|
+| `should register successfully with valid data [country]` | Data-driven test for 35 countries with generated emails |
+| `should display registration form elements` | Verify form elements visibility |
+| `should enable dependent dropdowns after country selection` | Verify dropdowns enable after country selection |
+
+**Email Generation Pattern**: `nickchigg+{CountryName}Test{RandomString}@gmail.com`
+- Country names are cleaned (no spaces/symbols)
+- Random string: 5 letters (A-Za-z)
+- Example: `nickchigg+GermanyTestAbCdE@gmail.com`
+
+**Registration Parameters**:
+- Phone: `12341234`
+- Password: `Password1!`
+- Account Type: `Standard Floating`
+- Bonus Scheme: `Not applicable`
+- Currency: `USD`
+- Leverage: `1:500`
 
 ## Reports
 

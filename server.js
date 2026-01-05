@@ -11,12 +11,18 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// Load emails
+// Load emails and test data
 const emails = require('./test-emails.js');
+const testData = require('./data/testData.json');
 
 // API endpoint to get all emails
 app.get('/api/emails', (req, res) => {
   res.json(emails);
+});
+
+// API endpoint to get all countries
+app.get('/api/countries', (req, res) => {
+  res.json(testData.countries || []);
 });
 
 // API endpoint to get reports list
@@ -58,34 +64,59 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message);
 
       if (data.type === 'RUN_TESTS') {
-        const { selectedEmails, browser, headless } = data;
+        const { testType, selectedItems, browser, headless } = data;
 
-        // Send confirmation
-        ws.send(JSON.stringify({
-          type: 'LOG',
-          level: 'info',
-          message: `Starting tests with ${selectedEmails.length} email(s) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
-        }));
-
-        ws.send(JSON.stringify({
-          type: 'LOG',
-          level: 'info',
-          message: `Selected emails: ${selectedEmails.join(', ')}`
-        }));
-
-        ws.send(JSON.stringify({
-          type: 'LOG',
-          level: 'info',
-          message: `Executing: npx playwright test --project ${browser}`
-        }));
-
-        // Build environment variables
+        // Determine test path and environment variable based on test type
+        let testPath = '';
         const env = { ...process.env };
 
-        // Set selected emails
-        if (selectedEmails.length > 0) {
-          env.TEST_EMAIL = selectedEmails.join(',');
+        if (testType === 'login') {
+          testPath = 'tests/login';
+          const selectedEmails = selectedItems || [];
+
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: `Starting LOGIN tests with ${selectedEmails.length} email(s) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
+          }));
+
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: `Selected emails: ${selectedEmails.join(', ')}`
+          }));
+
+          // Set selected emails
+          if (selectedEmails.length > 0) {
+            env.TEST_EMAIL = selectedEmails.join(',');
+          }
+        } else if (testType === 'register') {
+          testPath = 'tests/register';
+          const selectedCountries = selectedItems || [];
+
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: `Starting REGISTRATION tests with ${selectedCountries.length} country(ies) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
+          }));
+
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: `Selected countries: ${selectedCountries.join(', ')}`
+          }));
+
+          // Set selected countries
+          if (selectedCountries.length > 0) {
+            env.TEST_COUNTRY = selectedCountries.join(',');
+          }
         }
+
+        ws.send(JSON.stringify({
+          type: 'LOG',
+          level: 'info',
+          message: `Executing: npx playwright test ${testPath} --project ${browser}`
+        }));
 
         // Set headless mode
         env.HEADLESS = headless ? 'true' : 'false';
@@ -93,6 +124,7 @@ wss.on('connection', (ws) => {
         // Set browser project and add reporters for better output
         let playwrightArgs = [
           'test',
+          testPath,
           '--project', browser,
           '--reporter=line',
           '--reporter=./utils/custom-reporter.js'
