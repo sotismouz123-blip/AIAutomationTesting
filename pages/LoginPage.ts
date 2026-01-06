@@ -1,7 +1,9 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { PageHelpers } from '../utils/PageHelpers';
 
 export class LoginPage {
   readonly page: Page;
+  private pageHelpers: PageHelpers;
 
   // Locators
   readonly emailInput: Locator;
@@ -14,6 +16,7 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page;
+    this.pageHelpers = new PageHelpers(page);
     this.emailInput = page.locator('#inlineFieldLogin');
     this.passwordInput = page.locator('#inlineFieldPassword');
     this.loginButton = page.locator('button.btn-red.btn-login:has-text("Login")');
@@ -118,5 +121,33 @@ export class LoginPage {
       type: 'jpeg',
       quality
     });
+  }
+
+  /**
+   * Get all navigation links on the login page
+   */
+  async getNavigationLinks(): Promise<Array<{ text: string; url: string | null; target: string | null }>> {
+    return this.pageHelpers.getNavigationLinks();
+  }
+
+  /**
+   * Click a button/link and wait for navigation
+   */
+  async clickElementAndWaitForNavigation(elementText: string): Promise<string> {
+    return this.pageHelpers.clickElementAndWaitForNavigation(elementText);
+  }
+
+  /**
+   * Go back to login page
+   */
+  async goBack(): Promise<void> {
+    return this.pageHelpers.goBack();
+  }
+
+  /**
+   * Verify current URL matches expected URL
+   */
+  async verifyCurrentUrl(expectedUrl: string | RegExp): Promise<void> {
+    return this.pageHelpers.verifyCurrentUrl(expectedUrl);
   }
 }

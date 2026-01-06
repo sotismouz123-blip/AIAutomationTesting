@@ -120,6 +120,9 @@ wss.on('connection', (ws) => {
         // Set headless mode
         env.HEADLESS = headless ? 'true' : 'false';
 
+        // Set selected browser for report
+        env.SELECTED_BROWSER = browser;
+
         // Set browser project and add reporters for better output
         let playwrightArgs = [
           'test',

@@ -1,7 +1,9 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { PageHelpers } from '../utils/PageHelpers';
 
 export class RegisterPage {
   readonly page: Page;
+  private pageHelpers: PageHelpers;
 
   // Locators
   readonly countrySelect: Locator;
@@ -23,6 +25,7 @@ export class RegisterPage {
 
   constructor(page: Page) {
     this.page = page;
+    this.pageHelpers = new PageHelpers(page);
     this.countrySelect = page.locator('#country');
     this.firstNameInput = page.locator('#first_name');
     this.lastNameInput = page.locator('#last_name');
@@ -222,5 +225,100 @@ export class RegisterPage {
     await expect(this.countrySelect).toBeVisible();
     await expect(this.emailInput).toBeVisible();
     await expect(this.submitButton).toBeVisible();
+  }
+
+  /**
+   * Get all available options from bonus scheme dropdown (excluding "-- Select --")
+   */
+  async getBonusSchemeOptions(): Promise<string[]> {
+    const options = await this.bonusSchemeSelect.locator('option').allTextContents();
+    return options.filter(opt => opt.trim() !== '' && !opt.toLowerCase().includes('select'));
+  }
+
+  /**
+   * Get all available options from currency dropdown (excluding "-- Select --")
+   */
+  async getCurrencyOptions(): Promise<string[]> {
+    const options = await this.currencySelect.locator('option').allTextContents();
+    return options.filter(opt => opt.trim() !== '' && !opt.toLowerCase().includes('select'));
+  }
+
+  /**
+   * Get all available options from leverage dropdown (excluding "-- Select --")
+   */
+  async getLeverageOptions(): Promise<string[]> {
+    const options = await this.leverageSelect.locator('option').allTextContents();
+    return options.filter(opt => opt.trim() !== '' && !opt.toLowerCase().includes('select'));
+  }
+
+  /**
+   * Get all available account type options (excluding "-- Select --")
+   */
+  async getAccountTypeOptions(): Promise<string[]> {
+    const options = await this.accountTypeSelect.locator('option').allTextContents();
+    return options.filter(opt => opt.trim() !== '' && !opt.toLowerCase().includes('select'));
+  }
+
+  /**
+   * Verify dropdown has options
+   */
+  async verifyDropdownHasOptions(dropdown: Locator, expectedOptions: string[]): Promise<void> {
+    const actualOptions = await dropdown.locator('option').allTextContents();
+    const filteredOptions = actualOptions.filter(opt => opt.trim() !== '');
+
+    for (const expected of expectedOptions) {
+      expect(filteredOptions).toContain(expected);
+    }
+  }
+
+  /**
+   * Verify a combination of trading settings is selected
+   */
+  async verifySelectedCombination(accountType: string, bonusScheme: string, currency: string, leverage: string): Promise<void> {
+    const selectedAccountType = await this.accountTypeSelect.inputValue();
+    const selectedBonus = await this.bonusSchemeSelect.inputValue();
+    const selectedCurrency = await this.currencySelect.inputValue();
+    const selectedLeverage = await this.leverageSelect.inputValue();
+
+    expect(selectedAccountType).toBeTruthy();
+    expect(selectedBonus).toBeTruthy();
+    expect(selectedCurrency).toBeTruthy();
+    expect(selectedLeverage).toBeTruthy();
+  }
+
+  /**
+   * Get all available account types
+   */
+  async getAllAccountTypes(): Promise<string[]> {
+    const options = await this.accountTypeSelect.locator('option').allTextContents();
+    return options.filter(opt => opt.trim() !== '');
+  }
+
+  /**
+   * Click a button and wait for navigation
+   */
+  async clickButtonAndWaitForNavigation(buttonText: string): Promise<string> {
+    return this.pageHelpers.clickElementAndWaitForNavigation(buttonText);
+  }
+
+  /**
+   * Get all footer/header links that typically redirect
+   */
+  async getNavigationLinks(): Promise<Array<{ text: string; url: string | null; target: string | null }>> {
+    return this.pageHelpers.getNavigationLinks();
+  }
+
+  /**
+   * Verify current URL matches expected URL
+   */
+  async verifyCurrentUrl(expectedUrl: string | RegExp): Promise<void> {
+    return this.pageHelpers.verifyCurrentUrl(expectedUrl);
+  }
+
+  /**
+   * Go back to registration page
+   */
+  async goBack(): Promise<void> {
+    return this.pageHelpers.goBack();
   }
 }
