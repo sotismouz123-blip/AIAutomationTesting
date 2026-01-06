@@ -11,13 +11,12 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// Load emails and test data
-const emails = require('./test-emails.js');
+// Load test data
 const testData = require('./data/testData.json');
 
 // API endpoint to get all emails
 app.get('/api/emails', (req, res) => {
-  res.json(emails);
+  res.json(testData.emails);
 });
 
 // API endpoint to get all countries
