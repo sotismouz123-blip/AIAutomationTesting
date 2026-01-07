@@ -12,15 +12,11 @@ class CustomHTMLReporter {
     console.log(`Starting test run with ${suite.allTests().length} tests`);
   }
 
-  /**
-   * Generate a numbered list of test cases with clickable links
-   */
   generateTestCasesList() {
     const uniqueTests = new Map();
 
-    // Group tests by name to get unique test types
     this.tests.forEach((test, index) => {
-      const testName = test.name.split('[')[0]; // Remove parameters like [country]
+      const testName = test.name.split('[')[0];
       if (!uniqueTests.has(testName)) {
         uniqueTests.set(testName, {
           description: test.description,
@@ -47,10 +43,8 @@ class CustomHTMLReporter {
     const testName = test.title;
     const annotations = test.annotations || [];
 
-    // Extract test description from annotations
     let testDescription = '';
     let combinations = [];
-    let buttonRedirections = [];
     for (const annotation of annotations) {
       if (annotation.type === 'description' && annotation.description) {
         testDescription = annotation.description;
@@ -58,12 +52,8 @@ class CustomHTMLReporter {
       if (annotation.type === 'combinations' && annotation.description) {
         combinations = annotation.description.split('|').filter(c => c.trim() !== '');
       }
-      if (annotation.type === 'button-redirections' && annotation.description) {
-        buttonRedirections = annotation.description.split('|').filter(c => c.trim() !== '');
-      }
     }
 
-    // Extract steps from result and map attachments to steps
     const steps = result.steps
       .filter(step => !step.title.startsWith('Before Hooks') && !step.title.startsWith('After Hooks'))
       .map((step, index) => {
@@ -74,11 +64,9 @@ class CustomHTMLReporter {
           screenshots: []
         };
 
-        // Find attachments that belong to this step
         if (result.attachments) {
           result.attachments.forEach(attachment => {
             if (attachment.contentType === 'image/png' || attachment.contentType === 'image/jpeg') {
-              // Convert screenshot to base64
               let screenshotData = '';
               const imageType = attachment.contentType === 'image/jpeg' ? 'jpeg' : 'png';
 
@@ -110,8 +98,7 @@ class CustomHTMLReporter {
       steps: steps,
       duration: result.duration,
       description: testDescription,
-      combinations: combinations,
-      buttonRedirections: buttonRedirections
+      combinations: combinations
     });
   }
 
@@ -122,7 +109,6 @@ class CustomHTMLReporter {
     const failedTests = this.tests.filter(t => t.status === 'failed').length;
     const totalTests = this.tests.length;
 
-    // Get selected browser from environment variable
     const selectedBrowser = process.env.SELECTED_BROWSER || 'Multiple Browsers';
     const browserMap = {
       'chromium': 'Chromium',
@@ -132,7 +118,21 @@ class CustomHTMLReporter {
     const displayBrowser = browserMap[selectedBrowser.toLowerCase()] || selectedBrowser;
 
     const datetime = new Date().toISOString().replace(/:/g, '-').split('.')[0].replace('T', '_');
-    const reportPath = path.join(process.cwd(), 'reports', `report_${datetime}.html`);
+
+    // Detect test suite type from test names
+    let testType = 'unknown';
+    if (this.tests.length > 0) {
+      const firstTestName = this.tests[0].name.toLowerCase();
+      if (firstTestName.includes('login')) {
+        testType = 'login';
+      } else if (firstTestName.includes('register') || firstTestName.includes('registration')) {
+        testType = 'register';
+      }
+    }
+    testType = process.env.TEST_TYPE || testType;
+
+    const reportPath = path.join(process.cwd(), 'reports', `report_${testType}_${datetime}.html`);
+    const jsonReportPath = path.join(process.cwd(), 'reports', `report_${testType}_${datetime}.json`);
 
     if (!fs.existsSync('reports')) {
       fs.mkdirSync('reports', { recursive: true });
@@ -169,13 +169,6 @@ class CustomHTMLReporter {
     .combinations-items { color: #ddd; max-height: 300px; overflow-y: auto; }
     .combination-item { padding: 4px 0; border-bottom: 1px solid rgba(102,126,234,0.2); }
     .combination-item:last-child { border-bottom: none; }
-    .redirections-list { background: rgba(102,126,234,0.05); border-left: 3px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 12px; font-size: 12px; }
-    .redirections-title { color: #667eea; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
-    .redirections-items { color: #ddd; max-height: 400px; overflow-y: auto; }
-    .redirection-item { padding: 6px 0; border-bottom: 1px solid rgba(102,126,234,0.2); font-size: 11px; }
-    .redirection-item:last-child { border-bottom: none; }
-    .redirection-status-pass { color: #66bb6a; font-weight: 600; }
-    .redirection-status-fail { color: #ef5350; font-weight: 600; }
     .test { margin-bottom: 15px; border: 2px solid #333; border-radius: 8px; overflow: hidden; }
     .test-collapsed { border: 2px solid #555; }
     .test-header-collapsed { background: #2a2a2a; padding: 20px; border-bottom: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.3s; }
@@ -290,7 +283,6 @@ class CustomHTMLReporter {
         const testNumber = index + 1;
         return `
       <div class="test test-collapsed" data-status="${test.status}" id="${testId}">
-        <!-- Collapsed Header - Always Visible -->
         <div class="test-header-collapsed" onclick="toggleTest('${testId}')">
           <div style="display: flex; align-items: center; flex: 1;">
             <span class="test-number">#${testNumber}</span>
@@ -301,8 +293,6 @@ class CustomHTMLReporter {
             <span class="test-toggle-icon">▼</span>
           </div>
         </div>
-
-        <!-- Expandable Content - Hidden by Default -->
         <div class="test-content" id="${testId}-content">
           ${test.description ? `<div class="test-case-description">${test.description}</div>` : ''}
           ${test.combinations && test.combinations.length > 0 ? `
@@ -310,20 +300,6 @@ class CustomHTMLReporter {
               <div class="combinations-title">Test Combinations (${test.combinations.length})</div>
               <div class="combinations-items">
                 ${test.combinations.map((combo, idx) => `<div class="combination-item">${idx + 1}. ${combo}</div>`).join('')}
-              </div>
-            </div>
-          ` : ''}
-          ${test.buttonRedirections && test.buttonRedirections.length > 0 ? `
-            <div class="redirections-list">
-              <div class="redirections-title">Button Redirections (${test.buttonRedirections.length})</div>
-              <div class="redirections-items">
-                ${test.buttonRedirections.map((redirect, idx) => {
-                  const statusMatch = redirect.match(/\(✓ PASS\)|\(✗ FAIL\)/);
-                  const status = statusMatch ? statusMatch[0] : '(Unknown)';
-                  const statusClass = status.includes('✓') ? 'redirection-status-pass' : 'redirection-status-fail';
-                  const displayText = redirect.replace(/\s*\(✓ PASS\)|\s*\(✗ FAIL\)/, '');
-                  return `<div class="redirection-item">${idx + 1}. ${displayText} <span class="${statusClass}">${status}</span></div>`;
-                }).join('')}
               </div>
             </div>
           ` : ''}
@@ -364,7 +340,6 @@ class CustomHTMLReporter {
       const tests = document.querySelectorAll('.test');
       const summaryItems = document.querySelectorAll('.summary-item');
 
-      // Update active state on summary items
       summaryItems.forEach(item => item.classList.remove('active'));
 
       if (status === 'all') {
@@ -393,7 +368,6 @@ class CustomHTMLReporter {
       }
     }
 
-    // Handle smooth scroll to test case when clicking on overview links
     document.addEventListener('click', function(event) {
       if (event.target.classList.contains('test-overview-link')) {
         event.preventDefault();
@@ -408,13 +382,39 @@ class CustomHTMLReporter {
         }
       }
     });
-
   </script>
 </body>
 </html>`;
 
     fs.writeFileSync(reportPath, html);
     console.log(`\n✓ Custom report generated: ${reportPath}`);
+
+    const jsonData = {
+      testType,
+      browser: displayBrowser,
+      headless: process.env.HEADLESS === 'true',
+      startTime: this.startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      duration,
+      stats: {
+        total: totalTests,
+        passed: passedTests,
+        failed: failedTests
+      },
+      tests: this.tests.map(test => ({
+        name: test.name,
+        status: test.status,
+        duration: test.duration,
+        description: test.description,
+        startTime: test.startTime.toISOString(),
+        endTime: test.endTime.toISOString(),
+        steps: test.steps,
+        combinations: test.combinations
+      }))
+    };
+
+    fs.writeFileSync(jsonReportPath, JSON.stringify(jsonData, null, 2));
+    console.log(`✓ JSON report data saved: ${jsonReportPath}`);
   }
 }
 

@@ -1,6 +1,6 @@
-# IronFX Login Test Automation
+# IronFX Test Automation Dashboard
 
-Automated test framework for IronFX Client Portal login functionality using Playwright with Page Object Model (POM) design pattern.
+Comprehensive Playwright-based test automation framework for IronFX Client Portal with a web-based dashboard for test execution, management, and reporting. Supports login and registration testing across multiple browsers with data-driven testing capabilities.
 
 ## Project Structure
 
@@ -36,16 +36,43 @@ AIAutomationTesting/
 └── package.json                    # Project dependencies
 ```
 
+## Current Status (Latest Update: January 7, 2026)
+
+### Recent Changes - Unified Report Removal
+
+**Completed Actions:**
+1. ✅ Removed all unified report generation (`report_unified_*.html`)
+2. ✅ Deleted unified report generator files and templates
+3. ✅ Updated `custom-reporter.js` with auto-detection logic for test suite type
+4. ✅ Updated `server.js` to remove `generateUnifiedReport()` function
+5. ✅ Implemented dual-report system (separate reports for login and register)
+
+**Result:**
+- Tests now generate **only 2 separate reports** per execution:
+  - `report_login_[timestamp].html` - Contains only login test results
+  - `report_register_[timestamp].html` - Contains only registration test results
+- No more unified combined reports
+- Each report is automatically detected and named based on test suite type
+- Web dashboard displays both reports separately when available
+
+**Files Deleted:**
+- `utils/PageHelpers.ts`
+- `utils/report-generator.js`
+- `utils/unified-report-template.html`
+- `utils/test-section-template.html`
+- All redirection-related test utilities
+
 ## Features
 
 - **Page Object Model (POM)**: Maintainable and reusable test architecture
 - **Data-Driven Testing**: Test 225+ email accounts from centralized JSON file
 - **Multi-Browser Support**: Chromium, Firefox, Microsoft Edge
-- **Custom HTML Reports**: Interactive reports with clickable filtering (Total/Passed/Failed)
+- **Dual HTML Reports**: Separate interactive reports for login and registration tests
 - **Screenshot Capture**: JPEG screenshots with configurable compression
-- **Web UI Dashboard**: Real-time test execution monitoring
+- **Web UI Dashboard**: Real-time test execution monitoring with individual test selection
 - **Parallel Execution**: Run tests concurrently with 3 workers
 - **Custom Fixtures**: Reusable test setup with loginPage, testData, screenshotHelper
+- **Individual Test Selection**: Select specific tests from either suite to run
 
 ## Prerequisites
 

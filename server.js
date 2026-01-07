@@ -14,6 +14,32 @@ app.use(express.static('public'));
 // Load test data
 const testData = require('./data/testData.json');
 
+// Define available tests
+const availableTests = {
+  login: [
+    { name: 'login-basic', title: 'Login with valid credentials' },
+    { name: 'login-invalid', title: 'Login with invalid credentials' },
+    { name: 'login-empty', title: 'Login with empty fields' }
+  ],
+  register: [
+    { name: 'data-driven-registration', title: 'Data-driven registration test' },
+    { name: 'form-elements', title: 'Form elements visibility' },
+    { name: 'dependent-dropdowns-country', title: 'Dependent dropdowns after country selection' },
+    { name: 'dependent-dropdowns-account', title: 'Dependent dropdowns after account type selection' },
+    { name: 'bonus-categories', title: 'Bonus categories verification' },
+    { name: 'currencies', title: 'Currency options verification' },
+    { name: 'leverage-values', title: 'Leverage values verification' },
+    { name: 'dropdown-population', title: 'Dropdown population verification' },
+
+  ]
+};
+
+// API endpoint to get available tests
+app.get('/api/tests', (req, res) => {
+  const testType = req.query.type || 'login';
+  res.json(availableTests[testType] || []);
+});
+
 // API endpoint to get all emails
 app.get('/api/emails', (req, res) => {
   res.json(testData.emails);
@@ -55,6 +81,215 @@ const server = app.listen(PORT, () => {
 // WebSocket server for real-time logs
 const wss = new WebSocketServer({ server });
 
+// Function to run tests for a single suite
+function runTestSuite(ws, suite, testNames, emails, countries, browser, headless) {
+  return new Promise((resolve) => {
+    const testPath = `tests/${suite}`;
+    const env = { ...process.env };
+
+    ws.send(JSON.stringify({
+      type: 'LOG',
+      level: 'info',
+      message: `Executing: npx playwright test ${testPath} --project ${browser}`
+    }));
+
+    // Set environment variables
+    env.HEADLESS = headless ? 'true' : 'false';
+    env.SELECTED_BROWSER = browser;
+    env.TEST_TYPE = suite;
+
+    // Set selected emails for login tests
+    if (suite === 'login' && emails && emails.length > 0) {
+      env.TEST_EMAIL = emails.join(',');
+    }
+
+    // Set selected countries for registration tests
+    if (suite === 'register' && countries && countries.length > 0) {
+      env.TEST_COUNTRY = countries.join(',');
+    }
+
+    // Build playwright args
+    let playwrightArgs = [
+      'test',
+      testPath,
+      '--project', browser,
+      '--reporter=line',
+      '--reporter=./utils/custom-reporter.js'
+    ];
+
+    // If specific tests are selected, add test name filter
+    if (testNames.length > 0 && testNames.length < availableTests[suite].length) {
+      const testPattern = testNames.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      playwrightArgs.push('--grep', testPattern);
+    }
+
+    // Spawn Playwright process
+    ws.send(JSON.stringify({
+      type: 'LOG',
+      level: 'info',
+      message: `🚀 Spawning test process for ${suite}...`
+    }));
+
+    const testProcess = spawn('npx', ['playwright', ...playwrightArgs], {
+      env: {
+        ...env,
+        FORCE_COLOR: '0',
+        NODE_ENV: 'test'
+      },
+      shell: true,
+      cwd: __dirname,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    testProcess.on('spawn', () => {
+      ws.send(JSON.stringify({
+        type: 'LOG',
+        level: 'info',
+        message: `✓ Test process spawned successfully`
+      }));
+    });
+
+    // Stream stdout
+    testProcess.stdout.setEncoding('utf8');
+    testProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log('[STDOUT]', output);
+
+      output.split('\n').forEach(line => {
+        if (line.trim()) {
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: line
+          }));
+        }
+      });
+    });
+
+    // Stream stderr
+    testProcess.stderr.setEncoding('utf8');
+    testProcess.stderr.on('data', (data) => {
+      const output = data.toString();
+      console.log('[STDERR]', output);
+
+      output.split('\n').forEach(line => {
+        if (line.trim()) {
+          let level = 'info';
+          if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+            level = 'error';
+          } else if (line.toLowerCase().includes('warning')) {
+            level = 'warning';
+          }
+
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: level,
+            message: line
+          }));
+        }
+      });
+    });
+
+    // Handle process completion
+    testProcess.on('close', (code) => {
+      if (code === 0) {
+        ws.send(JSON.stringify({
+          type: 'LOG',
+          level: 'success',
+          message: `✓ ${suite} tests completed successfully!`
+        }));
+      } else {
+        ws.send(JSON.stringify({
+          type: 'LOG',
+          level: 'error',
+          message: `✗ ${suite} tests failed with exit code ${code}`
+        }));
+      }
+      resolve(code);
+    });
+
+    testProcess.on('error', (error) => {
+      ws.send(JSON.stringify({
+        type: 'LOG',
+        level: 'error',
+        message: `Error: ${error.message}`
+      }));
+      resolve(1);
+    });
+  });
+}
+
+// Function to run tests from multiple suites sequentially
+async function runTestsSequentially(ws, suites, testsBySuite, emails, countries, browser, headless) {
+  let overallCode = 0;
+  const reportData = {
+    testSuite: suites.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' + '),
+    browser: browser.charAt(0).toUpperCase() + browser.slice(1),
+    executionMode: headless ? 'Headless' : 'Headed',
+    timestamp: new Date().toLocaleString(),
+    tests: [],
+    passedCount: 0,
+    failedCount: 0,
+    totalCount: 0,
+    startTime: Date.now()
+  };
+
+  for (const suite of suites) {
+    const testNames = testsBySuite[suite];
+    ws.send(JSON.stringify({
+      type: 'LOG',
+      level: 'info',
+      message: `\n━━━ Starting ${suite.toUpperCase()} test suite (${testNames.length} test(s)) ━━━`
+    }));
+
+    const code = await runTestSuite(ws, suite, testNames, emails, countries, browser, headless);
+    if (code !== 0) overallCode = code;
+
+    // Collect test results from JSON report files
+    const reportPath = path.join(__dirname, 'reports');
+    if (fs.existsSync(reportPath)) {
+      const reportFiles = fs.readdirSync(reportPath)
+        .filter(f => f.endsWith('.json') && f.includes(`report_${suite}_`))
+        .sort()
+        .reverse();
+
+      if (reportFiles.length > 0) {
+        try {
+          const latestReport = JSON.parse(
+            fs.readFileSync(path.join(reportPath, reportFiles[0]), 'utf-8')
+          );
+          if (latestReport.tests && latestReport.tests.length > 0) {
+            reportData.tests = reportData.tests.concat(latestReport.tests);
+
+            // Calculate passed/failed from actual test statuses
+            const passedTests = latestReport.tests.filter(t => t.status === 'passed').length;
+            const failedTests = latestReport.tests.filter(t => t.status === 'failed').length;
+
+            reportData.passedCount += passedTests;
+            reportData.failedCount += failedTests;
+          } else if (latestReport.stats) {
+            // Fallback to stats if tests array is not available
+            reportData.passedCount += latestReport.stats.passed || 0;
+            reportData.failedCount += latestReport.stats.failed || 0;
+          }
+        } catch (e) {
+          console.error('Error reading report file:', e);
+        }
+      }
+    }
+  }
+
+  reportData.totalCount = reportData.tests.length;
+  reportData.duration = ((Date.now() - reportData.startTime) / 1000).toFixed(2) + 's';
+
+  ws.send(JSON.stringify({
+    type: 'COMPLETE',
+    level: overallCode === 0 ? 'success' : 'error',
+    message: overallCode === 0 ? `✓ All tests completed successfully! Reports generated.` : `✗ Tests completed with errors. Reports generated.`
+  }));
+}
+
+
 wss.on('connection', (ws) => {
   console.log('Client connected to WebSocket');
 
@@ -63,169 +298,83 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message);
 
       if (data.type === 'RUN_TESTS') {
-        const { testType, selectedItems, browser, headless } = data;
+        const { tests, emails, countries, browser, headless } = data;
+        const selectedTests = tests || [];
 
-        // Determine test path and environment variable based on test type
-        let testPath = '';
-        const env = { ...process.env };
-
-        if (testType === 'login') {
-          testPath = 'tests/login';
-          const selectedEmails = selectedItems || [];
-
+        // Validate that tests are selected
+        if (!selectedTests || selectedTests.length === 0) {
           ws.send(JSON.stringify({
             type: 'LOG',
-            level: 'info',
-            message: `Starting LOGIN tests with ${selectedEmails.length} email(s) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
+            level: 'error',
+            message: 'Error: No tests selected'
           }));
-
           ws.send(JSON.stringify({
-            type: 'LOG',
-            level: 'info',
-            message: `Selected emails: ${selectedEmails.join(', ')}`
+            type: 'COMPLETE',
+            level: 'error',
+            message: 'No tests to run'
           }));
+          return;
+        }
 
-          // Set selected emails
-          if (selectedEmails.length > 0) {
-            env.TEST_EMAIL = selectedEmails.join(',');
+        // Group tests by suite
+        const testsBySuite = {};
+        selectedTests.forEach(test => {
+          if (test && test.suite) {
+            if (!testsBySuite[test.suite]) {
+              testsBySuite[test.suite] = [];
+            }
+            testsBySuite[test.suite].push(test.name);
           }
-        } else if (testType === 'register') {
-          testPath = 'tests/register';
-          const selectedCountries = selectedItems || [];
+        });
 
+        const suites = Object.keys(testsBySuite);
+
+        if (suites.length === 0) {
           ws.send(JSON.stringify({
             type: 'LOG',
-            level: 'info',
-            message: `Starting REGISTRATION tests with ${selectedCountries.length} country(ies) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
+            level: 'error',
+            message: 'Error: No valid test suites found'
           }));
-
           ws.send(JSON.stringify({
-            type: 'LOG',
-            level: 'info',
-            message: `Selected countries: ${selectedCountries.join(', ')}`
+            type: 'COMPLETE',
+            level: 'error',
+            message: 'No valid test suites'
           }));
-
-          // Set selected countries
-          if (selectedCountries.length > 0) {
-            env.TEST_COUNTRY = selectedCountries.join(',');
-          }
+          return;
         }
 
         ws.send(JSON.stringify({
           type: 'LOG',
           level: 'info',
-          message: `Executing: npx playwright test ${testPath} --project ${browser}`
+          message: `Starting tests with ${selectedTests.length} test(s) from ${suites.length} suite(s) on ${browser} (${headless ? 'headless' : 'headed'} mode)...`
         }));
 
-        // Set headless mode
-        env.HEADLESS = headless ? 'true' : 'false';
-
-        // Set selected browser for report
-        env.SELECTED_BROWSER = browser;
-
-        // Set browser project and add reporters for better output
-        let playwrightArgs = [
-          'test',
-          testPath,
-          '--project', browser,
-          '--reporter=line',
-          '--reporter=./utils/custom-reporter.js'
-        ];
-
-        // Spawn Playwright process
-        ws.send(JSON.stringify({
-          type: 'LOG',
-          level: 'info',
-          message: `🚀 Spawning test process...`
-        }));
-
-        const testProcess = spawn('npx', ['playwright', ...playwrightArgs], {
-          env: {
-            ...env,
-            FORCE_COLOR: '0',  // Disable colors for cleaner logs
-            NODE_ENV: 'test'
-          },
-          shell: true,
-          cwd: __dirname,
-          stdio: ['pipe', 'pipe', 'pipe']  // Explicitly set stdio for better output capture
-        });
-
-        testProcess.on('spawn', () => {
+        if (selectedTests.length > 0) {
           ws.send(JSON.stringify({
             type: 'LOG',
             level: 'info',
-            message: `✓ Test process spawned successfully`
+            message: `Selected tests: ${selectedTests.map(t => `${t.name}`).join(', ')}`
           }));
-        });
+        }
 
-        // Stream stdout
-        testProcess.stdout.setEncoding('utf8');
-        testProcess.stdout.on('data', (data) => {
-          const output = data.toString();
-          console.log('[STDOUT]', output); // Debug: log to server console
-
-          // Split by lines and send each line separately for better formatting
-          output.split('\n').forEach(line => {
-            if (line.trim()) {
-              ws.send(JSON.stringify({
-                type: 'LOG',
-                level: 'info',
-                message: line
-              }));
-            }
-          });
-        });
-
-        // Stream stderr (Playwright often sends progress here)
-        testProcess.stderr.setEncoding('utf8');
-        testProcess.stderr.on('data', (data) => {
-          const output = data.toString();
-          console.log('[STDERR]', output); // Debug: log to server console
-
-          // Split by lines and send each line separately
-          output.split('\n').forEach(line => {
-            if (line.trim()) {
-              // Determine log level based on content
-              let level = 'info';
-              if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
-                level = 'error';
-              } else if (line.toLowerCase().includes('warning')) {
-                level = 'warning';
-              }
-
-              ws.send(JSON.stringify({
-                type: 'LOG',
-                level: level,
-                message: line
-              }));
-            }
-          });
-        });
-
-        // Handle process completion
-        testProcess.on('close', (code) => {
-          if (code === 0) {
-            ws.send(JSON.stringify({
-              type: 'COMPLETE',
-              level: 'success',
-              message: `✓ Tests completed successfully!`
-            }));
-          } else {
-            ws.send(JSON.stringify({
-              type: 'COMPLETE',
-              level: 'error',
-              message: `✗ Tests failed with exit code ${code}`
-            }));
-          }
-        });
-
-        testProcess.on('error', (error) => {
+        if (emails && emails.length > 0) {
           ws.send(JSON.stringify({
             type: 'LOG',
-            level: 'error',
-            message: `Error: ${error.message}`
+            level: 'info',
+            message: `Selected emails: ${emails.slice(0, 3).join(', ')}${emails.length > 3 ? ` ... and ${emails.length - 3} more` : ''}`
           }));
-        });
+        }
+
+        if (countries && countries.length > 0) {
+          ws.send(JSON.stringify({
+            type: 'LOG',
+            level: 'info',
+            message: `Selected countries: ${countries.slice(0, 3).join(', ')}${countries.length > 3 ? ` ... and ${countries.length - 3} more` : ''}`
+          }));
+        }
+
+        // Run tests for each suite sequentially
+        runTestsSequentially(ws, suites, testsBySuite, emails, countries, browser, headless);
       }
     } catch (error) {
       ws.send(JSON.stringify({

@@ -19,7 +19,7 @@
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
@@ -61,7 +61,7 @@
 
     .dashboard {
       display: grid;
-      grid-template-columns: 400px 1fr;
+      grid-template-columns: 450px 1fr;
       gap: 20px;
       align-items: start;
     }
@@ -225,6 +225,7 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
+      margin-bottom: 10px;
     }
 
     .btn-primary {
@@ -238,6 +239,22 @@
     }
 
     .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: 2px solid #ddd;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #e0e0e0;
+      border-color: #667eea;
+    }
+
+    .btn-secondary:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
@@ -391,6 +408,63 @@
       font-size: 12px;
       font-weight: 600;
     }
+
+    .test-selection-panel {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+    }
+
+    .test-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .test-item:hover {
+      background: #f0f0f0;
+    }
+
+    .test-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .test-item label {
+      flex: 1;
+      cursor: pointer;
+      margin: 0;
+      font-weight: normal;
+    }
+
+    .test-count-badge {
+      background: #667eea;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+      display: inline-block;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .button-group .btn {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -402,24 +476,30 @@
         </div>
       </div>
       <h1>IronFX Test Dashboard</h1>
-      <p>Run automated login tests with real-time monitoring</p>
+      <p>Run automated tests with real-time monitoring</p>
     </div>
 
     <div class="dashboard">
       <!-- Control Panel -->
       <div class="card">
-        <h2>Test Configuration</h2>
+        <h2>Test Selection</h2>
 
         <div class="form-group">
-          <label for="testTypeSelect">Test Type</label>
-          <select id="testTypeSelect">
-            <option value="login">Login Tests</option>
-            <option value="register">Registration Tests</option>
-          </select>
+          <label>Test Suites</label>
+          <div class="checkbox-group" style="flex-direction: column; gap: 8px;">
+            <label>
+              <input type="checkbox" id="loginSuiteCheckbox" checked>
+              <span>Login Tests</span>
+            </label>
+            <label>
+              <input type="checkbox" id="registerSuiteCheckbox">
+              <span>Registration Tests</span>
+            </label>
+          </div>
         </div>
 
-        <div class="form-group" id="emailSelectionGroup">
-          <label>Email Selection</label>
+        <div class="form-group" id="emailSelectionGroup" style="display: none;">
+          <label>Select Emails (Login Tests)</label>
           <div class="custom-select">
             <div class="select-trigger" id="emailSelectTrigger">
               <span id="selectedEmailsText">Select emails...</span>
@@ -430,8 +510,8 @@
                 <input type="text" id="emailSearch" placeholder="Search emails...">
               </div>
               <div class="select-all">
-                <input type="checkbox" id="selectAllCheckbox">
-                <label for="selectAllCheckbox">Select All</label>
+                <input type="checkbox" id="selectAllEmailsCheckbox">
+                <label for="selectAllEmailsCheckbox">Select All</label>
               </div>
               <div class="select-options" id="emailOptions"></div>
             </div>
@@ -439,7 +519,7 @@
         </div>
 
         <div class="form-group" id="countrySelectionGroup" style="display: none;">
-          <label>Country Selection</label>
+          <label>Select Countries (Register Tests)</label>
           <div class="custom-select">
             <div class="select-trigger" id="countrySelectTrigger">
               <span id="selectedCountriesText">Select countries...</span>
@@ -456,6 +536,35 @@
               <div class="select-options" id="countryOptions"></div>
             </div>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Available Tests</label>
+          <div class="test-selection-panel" id="testSelectionPanel">
+            <div style="text-align: center; color: #888; padding: 20px;">Loading tests...</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <button class="btn btn-secondary" id="selectAllTestsBtn">
+            ✓ Select All Tests
+          </button>
+          <button class="btn btn-secondary" id="deselectAllTestsBtn">
+            ✗ Deselect All Tests
+          </button>
+        </div>
+
+        <div class="test-count-badge" id="testCountBadge">0 tests selected</div>
+
+        <div class="button-group" style="margin-top: 20px; margin-bottom: 20px;">
+          <button class="btn btn-primary" id="runSelectedTestsBtn" disabled>
+            <span class="status-indicator idle" id="statusIndicator"></span>
+            Run Selected
+          </button>
+          <button class="btn btn-primary" id="runAllTestsBtn">
+            <span class="status-indicator idle" id="statusIndicatorAll"></span>
+            Run All
+          </button>
         </div>
 
         <div class="form-group">
@@ -477,11 +586,6 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" id="runTestsBtn">
-          <span class="status-indicator idle" id="statusIndicator"></span>
-          Run Tests
-        </button>
-
         <div class="reports-section">
           <h3>Recent Reports</h3>
           <div id="reportsList"></div>
@@ -493,24 +597,20 @@
         <h2>Test Execution Logs</h2>
         <div class="stats">
           <div class="stat-card">
-            <div class="label" id="selectedItemsLabel">Selected Emails</div>
-            <div class="value" id="selectedCount">0</div>
+            <div class="label">Selected Tests</div>
+            <div class="value" id="selectedTestCount">0</div>
           </div>
           <div class="stat-card">
-            <div class="label">Test Type</div>
-            <div class="value" id="selectedTestType">Login</div>
+            <div class="label">Test Suites</div>
+            <div class="value" id="selectedTestType" style="font-size: 14px;">Login</div>
           </div>
           <div class="stat-card">
             <div class="label">Browser</div>
             <div class="value" id="selectedBrowser">Chromium</div>
           </div>
-          <div class="stat-card">
-            <div class="label">Mode</div>
-            <div class="value" id="selectedMode">Headless</div>
-          </div>
         </div>
         <div class="logs-container" id="logsContainer">
-          <div class="empty-logs">No tests running. Configure and click "Run Tests" to start.</div>
+          <div class="empty-logs">No tests running. Select tests and click "Run Selected" or "Run All" to start.</div>
         </div>
       </div>
     </div>

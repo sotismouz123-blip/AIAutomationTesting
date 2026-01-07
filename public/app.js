@@ -1,21 +1,26 @@
 // State
+let testsLogin = [];
+let testsRegister = [];
+let allTests = [];
+let selectedTests = [];
+let selectedSuites = ['login'];
 let emails = [];
 let countries = [];
 let selectedEmails = [];
 let selectedCountries = [];
-let currentTestType = 'login';
 let ws = null;
 let isRunning = false;
 
 // DOM Elements
-const testTypeSelect = document.getElementById('testTypeSelect');
+const loginSuiteCheckbox = document.getElementById('loginSuiteCheckbox');
+const registerSuiteCheckbox = document.getElementById('registerSuiteCheckbox');
 const emailSelectionGroup = document.getElementById('emailSelectionGroup');
 const countrySelectionGroup = document.getElementById('countrySelectionGroup');
 const emailSelectTrigger = document.getElementById('emailSelectTrigger');
 const emailDropdown = document.getElementById('emailDropdown');
 const emailOptions = document.getElementById('emailOptions');
 const emailSearch = document.getElementById('emailSearch');
-const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const selectAllEmailsCheckbox = document.getElementById('selectAllEmailsCheckbox');
 const selectedEmailsText = document.getElementById('selectedEmailsText');
 const countrySelectTrigger = document.getElementById('countrySelectTrigger');
 const countryDropdown = document.getElementById('countryDropdown');
@@ -23,22 +28,27 @@ const countryOptions = document.getElementById('countryOptions');
 const countrySearch = document.getElementById('countrySearch');
 const selectAllCountriesCheckbox = document.getElementById('selectAllCountriesCheckbox');
 const selectedCountriesText = document.getElementById('selectedCountriesText');
+const testSelectionPanel = document.getElementById('testSelectionPanel');
+const selectAllTestsBtn = document.getElementById('selectAllTestsBtn');
+const deselectAllTestsBtn = document.getElementById('deselectAllTestsBtn');
+const runSelectedTestsBtn = document.getElementById('runSelectedTestsBtn');
+const runAllTestsBtn = document.getElementById('runAllTestsBtn');
 const browserSelect = document.getElementById('browserSelect');
 const headlessCheckbox = document.getElementById('headlessCheckbox');
-const runTestsBtn = document.getElementById('runTestsBtn');
 const logsContainer = document.getElementById('logsContainer');
 const statusIndicator = document.getElementById('statusIndicator');
-const selectedCount = document.getElementById('selectedCount');
-const selectedItemsLabel = document.getElementById('selectedItemsLabel');
+const statusIndicatorAll = document.getElementById('statusIndicatorAll');
+const selectedTestCount = document.getElementById('selectedTestCount');
 const selectedTestType = document.getElementById('selectedTestType');
 const selectedBrowser = document.getElementById('selectedBrowser');
-const selectedMode = document.getElementById('selectedMode');
+const testCountBadge = document.getElementById('testCountBadge');
 const reportsList = document.getElementById('reportsList');
 
 // Initialize
 async function init() {
   await loadEmails();
   await loadCountries();
+  await loadAllTests();
   await loadReports();
   setupEventListeners();
   connectWebSocket();
@@ -63,17 +73,6 @@ async function loadCountries() {
     renderCountryOptions(countries);
   } catch (error) {
     console.error('Failed to load countries:', error);
-  }
-}
-
-// Load reports from API
-async function loadReports() {
-  try {
-    const response = await fetch('/api/reports');
-    const reports = await response.json();
-    renderReports(reports);
-  } catch (error) {
-    console.error('Failed to load reports:', error);
   }
 }
 
@@ -126,7 +125,6 @@ function updateSelectedEmails() {
     .filter(cb => cb.checked)
     .map(cb => cb.value);
 
-  // Update UI
   if (selectedEmails.length === 0) {
     selectedEmailsText.textContent = 'Select emails...';
   } else if (selectedEmails.length === 1) {
@@ -135,11 +133,8 @@ function updateSelectedEmails() {
     selectedEmailsText.innerHTML = `${selectedEmails.length} emails selected <span class="selected-count">${selectedEmails.length}</span>`;
   }
 
-  selectedCount.textContent = selectedEmails.length;
-
-  // Update select all checkbox
-  selectAllCheckbox.checked = selectedEmails.length === emails.length;
-  selectAllCheckbox.indeterminate = selectedEmails.length > 0 && selectedEmails.length < emails.length;
+  selectAllEmailsCheckbox.checked = selectedEmails.length === emails.length;
+  selectAllEmailsCheckbox.indeterminate = selectedEmails.length > 0 && selectedEmails.length < emails.length;
 }
 
 // Update selected countries
@@ -149,7 +144,6 @@ function updateSelectedCountries() {
     .filter(cb => cb.checked)
     .map(cb => cb.value);
 
-  // Update UI
   if (selectedCountries.length === 0) {
     selectedCountriesText.textContent = 'Select countries...';
   } else if (selectedCountries.length === 1) {
@@ -158,9 +152,6 @@ function updateSelectedCountries() {
     selectedCountriesText.innerHTML = `${selectedCountries.length} countries selected <span class="selected-count">${selectedCountries.length}</span>`;
   }
 
-  selectedCount.textContent = selectedCountries.length;
-
-  // Update select all checkbox
   selectAllCountriesCheckbox.checked = selectedCountries.length === countries.length;
   selectAllCountriesCheckbox.indeterminate = selectedCountries.length > 0 && selectedCountries.length < countries.length;
 }
@@ -172,7 +163,6 @@ function searchEmails(query) {
   );
   renderEmailOptions(filtered);
 
-  // Restore selections
   const checkboxes = emailOptions.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(cb => {
     cb.checked = selectedEmails.includes(cb.value);
@@ -186,11 +176,134 @@ function searchCountries(query) {
   );
   renderCountryOptions(filtered);
 
-  // Restore selections
   const checkboxes = countryOptions.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(cb => {
     cb.checked = selectedCountries.includes(cb.value);
   });
+}
+
+// Load tests from both suites
+async function loadAllTests() {
+  try {
+    const loginResponse = await fetch('/api/tests?type=login');
+    const registerResponse = await fetch('/api/tests?type=register');
+
+    testsLogin = await loginResponse.json();
+    testsRegister = await registerResponse.json();
+
+    updateAvailableTests();
+  } catch (error) {
+    console.error('Failed to load tests:', error);
+  }
+}
+
+// Update available tests based on selected suites
+function updateAvailableTests() {
+  selectedSuites = [];
+  if (loginSuiteCheckbox.checked) selectedSuites.push('login');
+  if (registerSuiteCheckbox.checked) selectedSuites.push('register');
+
+  allTests = [];
+
+  if (selectedSuites.includes('login')) {
+    allTests = allTests.concat(testsLogin.map(t => ({...t, suite: 'login'})));
+  }
+  if (selectedSuites.includes('register')) {
+    allTests = allTests.concat(testsRegister.map(t => ({...t, suite: 'register'})));
+  }
+
+  selectedTests = [];
+  renderTests();
+  updateSuitesDisplay();
+  updateSelectionGroupsVisibility();
+}
+
+// Update visibility of email/country selection groups
+function updateSelectionGroupsVisibility() {
+  emailSelectionGroup.style.display = selectedSuites.includes('login') ? 'block' : 'none';
+  countrySelectionGroup.style.display = selectedSuites.includes('register') ? 'block' : 'none';
+}
+
+// Render test selection checkboxes
+function renderTests() {
+  testSelectionPanel.innerHTML = '';
+
+  if (allTests.length === 0) {
+    testSelectionPanel.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Select at least one test suite</div>';
+    return;
+  }
+
+  const groupedTests = {};
+  allTests.forEach(test => {
+    if (!groupedTests[test.suite]) {
+      groupedTests[test.suite] = [];
+    }
+    groupedTests[test.suite].push(test);
+  });
+
+  Object.entries(groupedTests).forEach(([suite, tests]) => {
+    const suiteHeader = document.createElement('div');
+    suiteHeader.style.cssText = 'padding: 8px 10px; font-weight: 600; color: #667eea; text-transform: uppercase; font-size: 11px; margin-top: 10px; border-bottom: 1px solid #ddd;';
+    suiteHeader.textContent = suite === 'login' ? 'Login Tests' : 'Registration Tests';
+    testSelectionPanel.appendChild(suiteHeader);
+
+    tests.forEach((test, index) => {
+      const testDiv = document.createElement('div');
+      testDiv.className = 'test-item';
+      testDiv.innerHTML = `
+        <input type="checkbox" id="test-${suite}-${index}" value="${test.name}" data-suite="${test.suite}">
+        <label for="test-${suite}-${index}">${test.title}</label>
+      `;
+      testDiv.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const checkbox = testDiv.querySelector('input[type="checkbox"]');
+          checkbox.checked = !checkbox.checked;
+        }
+        updateSelectedTests();
+      });
+      testSelectionPanel.appendChild(testDiv);
+    });
+  });
+}
+
+// Update selected tests
+function updateSelectedTests() {
+  const checkboxes = testSelectionPanel.querySelectorAll('input[type="checkbox"]');
+  selectedTests = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => ({
+      name: cb.value,
+      suite: cb.dataset.suite
+    }));
+
+  selectedTestCount.textContent = selectedTests.length;
+  runSelectedTestsBtn.disabled = selectedTests.length === 0;
+
+  if (selectedTests.length === 0) {
+    testCountBadge.textContent = '0 tests selected';
+  } else {
+    testCountBadge.textContent = `${selectedTests.length} test${selectedTests.length === 1 ? '' : 's'} selected`;
+  }
+}
+
+// Update suites display in stats
+function updateSuitesDisplay() {
+  const suiteNames = [];
+  if (loginSuiteCheckbox.checked) suiteNames.push('Login');
+  if (registerSuiteCheckbox.checked) suiteNames.push('Register');
+
+  selectedTestType.textContent = suiteNames.join(' + ') || 'None';
+}
+
+// Load reports from API
+async function loadReports() {
+  try {
+    const response = await fetch('/api/reports');
+    const reports = await response.json();
+    renderReports(reports);
+  } catch (error) {
+    console.error('Failed to load reports:', error);
+  }
 }
 
 // Render reports
@@ -210,22 +323,13 @@ function renderReports(reports) {
 
 // Setup event listeners
 function setupEventListeners() {
-  // Test type change
-  testTypeSelect.addEventListener('change', (e) => {
-    currentTestType = e.target.value;
-    selectedTestType.textContent = e.target.value === 'login' ? 'Login' : 'Registration';
+  // Suite selection change
+  loginSuiteCheckbox.addEventListener('change', () => {
+    updateAvailableTests();
+  });
 
-    if (currentTestType === 'login') {
-      emailSelectionGroup.style.display = 'block';
-      countrySelectionGroup.style.display = 'none';
-      selectedItemsLabel.textContent = 'Selected Emails';
-      selectedCount.textContent = selectedEmails.length;
-    } else {
-      emailSelectionGroup.style.display = 'none';
-      countrySelectionGroup.style.display = 'block';
-      selectedItemsLabel.textContent = 'Selected Countries';
-      selectedCount.textContent = selectedCountries.length;
-    }
+  registerSuiteCheckbox.addEventListener('change', () => {
+    updateAvailableTests();
   });
 
   // Email dropdown toggle
@@ -261,7 +365,7 @@ function setupEventListeners() {
   });
 
   // Select all emails
-  selectAllCheckbox.addEventListener('change', (e) => {
+  selectAllEmailsCheckbox.addEventListener('change', (e) => {
     const checkboxes = emailOptions.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(cb => cb.checked = e.target.checked);
     updateSelectedEmails();
@@ -274,18 +378,40 @@ function setupEventListeners() {
     updateSelectedCountries();
   });
 
+  // Select all tests
+  selectAllTestsBtn.addEventListener('click', () => {
+    const checkboxes = testSelectionPanel.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = true);
+    updateSelectedTests();
+  });
+
+  // Deselect all tests
+  deselectAllTestsBtn.addEventListener('click', () => {
+    const checkboxes = testSelectionPanel.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateSelectedTests();
+  });
+
   // Browser change
   browserSelect.addEventListener('change', (e) => {
     selectedBrowser.textContent = e.target.options[e.target.selectedIndex].text;
   });
 
-  // Headless mode change
-  headlessCheckbox.addEventListener('change', (e) => {
-    selectedMode.textContent = e.target.checked ? 'Headless' : 'Headed';
+  // Run selected tests
+  runSelectedTestsBtn.addEventListener('click', () => {
+    if (selectedTests.length > 0) {
+      runTests(selectedTests);
+    }
   });
 
-  // Run tests button
-  runTestsBtn.addEventListener('click', runTests);
+  // Run all tests
+  runAllTestsBtn.addEventListener('click', () => {
+    const allTestsToRun = allTests.map(t => ({
+      name: t.name,
+      suite: t.suite
+    }));
+    runTests(allTestsToRun);
+  });
 }
 
 // Connect to WebSocket
@@ -306,8 +432,9 @@ function connectWebSocket() {
     } else if (data.type === 'COMPLETE') {
       addLog(data.level, data.message);
       setRunning(false);
-      // Reload reports
       setTimeout(() => loadReports(), 1000);
+    } else if (data.type === 'TEST_STATUS') {
+      addLog(data.status === 'PASS' ? 'success' : 'error', `${data.testName}: ${data.status}`);
     }
   };
 
@@ -324,30 +451,27 @@ function connectWebSocket() {
 }
 
 // Run tests
-function runTests() {
+function runTests(testsToRun) {
   if (isRunning) return;
 
-  // Validate selection based on test type
-  if (currentTestType === 'login') {
-    if (selectedEmails.length === 0) {
-      alert('Please select at least one email');
-      return;
-    }
-  } else if (currentTestType === 'register') {
-    if (selectedCountries.length === 0) {
-      alert('Please select at least one country');
-      return;
-    }
+  // Validate selections
+  if (selectedSuites.includes('login') && selectedEmails.length === 0) {
+    alert('Please select at least one email for login tests');
+    return;
   }
 
-  // Clear logs
+  if (selectedSuites.includes('register') && selectedCountries.length === 0) {
+    alert('Please select at least one country for registration tests');
+    return;
+  }
+
   logsContainer.innerHTML = '';
 
-  // Send command to server
   const payload = {
     type: 'RUN_TESTS',
-    testType: currentTestType,
-    selectedItems: currentTestType === 'login' ? selectedEmails : selectedCountries,
+    tests: testsToRun,
+    emails: selectedEmails,
+    countries: selectedCountries,
     browser: browserSelect.value,
     headless: headlessCheckbox.checked
   };
@@ -359,14 +483,27 @@ function runTests() {
 // Set running state
 function setRunning(running) {
   isRunning = running;
-  runTestsBtn.disabled = running;
+  runSelectedTestsBtn.disabled = running || selectedTests.length === 0;
+  runAllTestsBtn.disabled = running;
+  loginSuiteCheckbox.disabled = running;
+  registerSuiteCheckbox.disabled = running;
+  emailSelectTrigger.style.pointerEvents = running ? 'none' : 'auto';
+  countrySelectTrigger.style.pointerEvents = running ? 'none' : 'auto';
+  browserSelect.disabled = running;
+  headlessCheckbox.disabled = running;
+  selectAllTestsBtn.disabled = running;
+  deselectAllTestsBtn.disabled = running;
 
   if (running) {
     statusIndicator.className = 'status-indicator running';
-    runTestsBtn.textContent = 'Running Tests...';
+    statusIndicatorAll.className = 'status-indicator running';
+    runSelectedTestsBtn.innerHTML = '<span class="status-indicator running"></span>Running...';
+    runAllTestsBtn.innerHTML = '<span class="status-indicator running"></span>Running...';
   } else {
     statusIndicator.className = 'status-indicator idle';
-    runTestsBtn.innerHTML = '<span class="status-indicator idle" id="statusIndicator"></span>Run Tests';
+    statusIndicatorAll.className = 'status-indicator idle';
+    runSelectedTestsBtn.innerHTML = '<span class="status-indicator idle"></span>Run Selected';
+    runAllTestsBtn.innerHTML = '<span class="status-indicator idle"></span>Run All';
   }
 }
 
