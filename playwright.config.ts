@@ -16,10 +16,10 @@ export default defineConfig({
 
   use: {
     // Base URL for your tests
-    baseURL: 'https://ironfx-com.cp-uat.ironfx.local',
+    baseURL: 'https://www.ironfx.com',
 
-    // Ignore HTTPS certificate errors for UAT environment
-    ignoreHTTPSErrors: true,
+    // Ignore HTTPS certificate errors
+    ignoreHTTPSErrors: false,
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',

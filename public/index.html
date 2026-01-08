@@ -285,15 +285,54 @@
       font-weight: bold;
     }
 
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 10px;
+    }
+
+    .logs-header button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-export {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-export:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+
+    .btn-clear {
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .btn-clear:hover {
+      background: #e0e0e0;
+    }
+
     .logs-container {
       background: #1e1e1e;
       border-radius: 8px;
       padding: 20px;
-      height: 600px;
+      height: 500px;
       overflow-y: auto;
       font-family: 'Courier New', monospace;
-      font-size: 13px;
+      font-size: 12px;
       color: #d4d4d4;
+      border: 1px solid #333;
     }
 
     .log-entry {
@@ -607,6 +646,15 @@
           <div class="stat-card">
             <div class="label">Browser</div>
             <div class="value" id="selectedBrowser">Chromium</div>
+          </div>
+        </div>
+        <div class="logs-header">
+          <div>
+            <span id="logCount" style="color: #667eea; font-weight: 600; font-size: 13px;">0 logs</span>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn-export" id="exportLogsBtn" title="Export logs as text file">📥 Export Logs</button>
+            <button class="btn-clear" id="clearLogsBtn" title="Clear logs">🗑️ Clear</button>
           </div>
         </div>
         <div class="logs-container" id="logsContainer">

@@ -10,6 +10,9 @@ let selectedEmails = [];
 let selectedCountries = [];
 let ws = null;
 let isRunning = false;
+let logs = [];
+let testStartTime = null;
+let testEndTime = null;
 
 // DOM Elements
 const loginSuiteCheckbox = document.getElementById('loginSuiteCheckbox');
@@ -43,6 +46,9 @@ const selectedTestType = document.getElementById('selectedTestType');
 const selectedBrowser = document.getElementById('selectedBrowser');
 const testCountBadge = document.getElementById('testCountBadge');
 const reportsList = document.getElementById('reportsList');
+const exportLogsBtn = document.getElementById('exportLogsBtn');
+const clearLogsBtn = document.getElementById('clearLogsBtn');
+const logCount = document.getElementById('logCount');
 
 // Initialize
 async function init() {
@@ -412,6 +418,12 @@ function setupEventListeners() {
     }));
     runTests(allTestsToRun);
   });
+
+  // Export logs
+  exportLogsBtn.addEventListener('click', exportLogs);
+
+  // Clear logs
+  clearLogsBtn.addEventListener('click', clearLogs);
 }
 
 // Connect to WebSocket
@@ -428,8 +440,13 @@ function connectWebSocket() {
     const data = JSON.parse(event.data);
 
     if (data.type === 'LOG') {
+      // Track test start time on first log
+      if (logs.length === 0) {
+        testStartTime = new Date();
+      }
       addLog(data.level, data.message);
     } else if (data.type === 'COMPLETE') {
+      testEndTime = new Date();
       addLog(data.level, data.message);
       setRunning(false);
       setTimeout(() => loadReports(), 1000);
@@ -509,14 +526,88 @@ function setRunning(running) {
 
 // Add log entry
 function addLog(level, message) {
+  // Clear empty state message on first log
+  if (logs.length === 0) {
+    logsContainer.innerHTML = '';
+  }
+
   const logEntry = document.createElement('div');
   logEntry.className = `log-entry ${level}`;
 
   const timestamp = new Date().toLocaleTimeString();
-  logEntry.textContent = `[${timestamp}] ${message}`;
+  const fullMessage = `[${timestamp}] ${message}`;
+  logEntry.textContent = fullMessage;
+
+  // Store in logs array for export
+  logs.push({
+    timestamp: new Date().toISOString(),
+    level: level,
+    message: message
+  });
 
   logsContainer.appendChild(logEntry);
   logsContainer.scrollTop = logsContainer.scrollHeight;
+
+  // Update log count
+  logCount.textContent = `${logs.length} log${logs.length === 1 ? '' : 's'}`;
+}
+
+// Export logs to file
+function exportLogs() {
+  if (logs.length === 0) {
+    alert('No logs to export');
+    return;
+  }
+
+  let content = '═══════════════════════════════════════════════════════════\n';
+  content += '               TEST EXECUTION LOG EXPORT\n';
+  content += '═══════════════════════════════════════════════════════════\n\n';
+
+  content += `Export Time: ${new Date().toLocaleString()}\n`;
+  content += `Total Logs: ${logs.length}\n`;
+  content += `Test Suite: ${selectedTestType.textContent}\n`;
+  content += `Browser: ${selectedBrowser.textContent}\n`;
+  if (testStartTime && testEndTime) {
+    const duration = ((testEndTime - testStartTime) / 1000).toFixed(2);
+    content += `Duration: ${duration}s\n`;
+  }
+  content += '\n───────────────────────────────────────────────────────────\n';
+  content += 'EXECUTION LOGS:\n';
+  content += '───────────────────────────────────────────────────────────\n\n';
+
+  logs.forEach(log => {
+    const time = new Date(log.timestamp).toLocaleTimeString();
+    const levelLabel = `[${log.level.toUpperCase()}]`.padEnd(10);
+    content += `${time} ${levelLabel} ${log.message}\n`;
+  });
+
+  content += '\n═══════════════════════════════════════════════════════════\n';
+  content += 'END OF LOG\n';
+  content += '═══════════════════════════════════════════════════════════\n';
+
+  // Create blob and download
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `test-logs-${new Date().getTime()}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  addLog('success', '✓ Logs exported successfully');
+}
+
+// Clear logs
+function clearLogs() {
+  if (logs.length === 0) return;
+
+  if (confirm('Are you sure you want to clear all logs?')) {
+    logs = [];
+    logsContainer.innerHTML = '<div class="empty-logs">No tests running. Select tests and click "Run Selected" or "Run All" to start.</div>';
+    logCount.textContent = '0 logs';
+  }
 }
 
 // Initialize app

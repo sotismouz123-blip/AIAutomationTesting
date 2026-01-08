@@ -17,9 +17,11 @@ const testData = require('./data/testData.json');
 // Define available tests
 const availableTests = {
   login: [
-    { name: 'login-basic', title: 'Login with valid credentials' },
-    { name: 'login-invalid', title: 'Login with invalid credentials' },
-    { name: 'login-empty', title: 'Login with empty fields' }
+    { name: 'should login successfully', title: 'Login with valid credentials' },
+    { name: 'should display login form elements', title: 'Form elements visibility' },
+    { name: 'should show validation for empty fields', title: 'Empty fields validation' },
+    { name: 'should redirect to correct URLs', title: 'Button redirections' },
+    { name: 'should change language', title: 'Language selector' }
   ],
   register: [
     { name: 'data-driven-registration', title: 'Data-driven registration test' },
@@ -130,10 +132,22 @@ function runTestSuite(ws, suite, testNames, emails, countries, browser, headless
       message: `🚀 Spawning test process for ${suite}...`
     }));
 
+    ws.send(JSON.stringify({
+      type: 'LOG',
+      level: 'info',
+      message: `📋 Command: npx playwright ${playwrightArgs.join(' ')}`
+    }));
+
+    ws.send(JSON.stringify({
+      type: 'LOG',
+      level: 'info',
+      message: `🔧 Environment: Browser=${env.SELECTED_BROWSER}, Headless=${env.HEADLESS}, Workers=1`
+    }));
+
     const testProcess = spawn('npx', ['playwright', ...playwrightArgs], {
       env: {
         ...env,
-        FORCE_COLOR: '0',
+        FORCE_COLOR: '1',
         NODE_ENV: 'test'
       },
       shell: true,
@@ -145,40 +159,60 @@ function runTestSuite(ws, suite, testNames, emails, countries, browser, headless
       ws.send(JSON.stringify({
         type: 'LOG',
         level: 'info',
-        message: `✓ Test process spawned successfully`
+        message: `✓ Test process spawned successfully (PID: ${testProcess.pid})`
       }));
     });
 
-    // Stream stdout
+    // Stream stdout with detailed logging
     testProcess.stdout.setEncoding('utf8');
+    let stdoutBuffer = '';
     testProcess.stdout.on('data', (data) => {
       const output = data.toString();
+      stdoutBuffer += output;
       console.log('[STDOUT]', output);
 
-      output.split('\n').forEach(line => {
+      // Split by newlines and process
+      const lines = stdoutBuffer.split('\n');
+      stdoutBuffer = lines.pop(); // Keep incomplete line in buffer
+
+      lines.forEach(line => {
         if (line.trim()) {
+          let level = 'info';
+
+          // Detect log level from content
+          if (line.includes('✓') || line.includes('PASSED') || line.includes('passed')) {
+            level = 'success';
+          } else if (line.includes('×') || line.includes('FAILED') || line.includes('failed') || line.includes('Error')) {
+            level = 'error';
+          } else if (line.includes('⚠') || line.includes('WARNING') || line.includes('warning')) {
+            level = 'warning';
+          }
+
           ws.send(JSON.stringify({
             type: 'LOG',
-            level: 'info',
+            level: level,
             message: line
           }));
         }
       });
     });
 
-    // Stream stderr
+    // Stream stderr with detailed logging
     testProcess.stderr.setEncoding('utf8');
+    let stderrBuffer = '';
     testProcess.stderr.on('data', (data) => {
       const output = data.toString();
+      stderrBuffer += output;
       console.log('[STDERR]', output);
 
-      output.split('\n').forEach(line => {
+      const lines = stderrBuffer.split('\n');
+      stderrBuffer = lines.pop();
+
+      lines.forEach(line => {
         if (line.trim()) {
-          let level = 'info';
+          let level = 'warning';
           if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
             level = 'error';
-          } else if (line.toLowerCase().includes('warning')) {
-            level = 'warning';
           }
 
           ws.send(JSON.stringify({
